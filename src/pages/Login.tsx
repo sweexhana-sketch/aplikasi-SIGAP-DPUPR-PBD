@@ -139,16 +139,16 @@ const Login = () => {
             </div>
             
             <div className="space-y-2">
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
-                <h1 className="text-5xl lg:text-7xl font-black tracking-tighter font-outfit text-white drop-shadow-md">
+              <div className="flex flex-wrap items-baseline justify-center lg:justify-start gap-4">
+                <h1 className="text-6xl lg:text-8xl font-black tracking-tighter font-outfit text-transparent bg-clip-text bg-gradient-to-br from-amber-400 via-yellow-300 to-orange-600 drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] filter">
                   SI PRO
                 </h1>
                 <Badge label="v2.0" color="primary" />
               </div>
-              <h2 className="text-lg lg:text-xl font-bold text-secondary uppercase tracking-widest drop-shadow-sm">
-                Sistem Informasi Proyek
+              <h2 className="text-lg lg:text-2xl font-bold text-white/90 uppercase tracking-[0.2em] font-outfit mt-2">
+                Sistem Informasi <span className="text-cyan-400">Proyek</span>
               </h2>
-              <p className="text-sm lg:text-base text-muted-foreground max-w-md mx-auto lg:mx-0 leading-relaxed">
+              <p className="text-sm lg:text-base text-slate-300 max-w-md mx-auto lg:mx-0 leading-relaxed">
                 Pusat kendali laporan perkembangan fisik, manajemen kontrak, dan monitoring pembangunan infrastruktur Dinas PUPR Provinsi Papua Barat Daya.
               </p>
             </div>
@@ -163,13 +163,14 @@ const Login = () => {
 
         {/* Right Side - Login Panel */}
         <div className="w-full max-w-md shrink-0 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-          <div className="glass-dark rounded-2xl p-6 border-t-4 border-t-secondary shadow-2xl relative overflow-hidden">
+          <div className="rounded-3xl p-8 border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden backdrop-blur-2xl bg-[#0f172a]/60">
             {/* Inner top glow */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-4 bg-secondary/30 blur-xl" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-12 bg-cyan-500/20 blur-2xl" />
             
-            <div className="text-center mb-6">
-              <h3 className="text-xl font-bold text-white font-outfit">Portal Masuk</h3>
-              <p className="text-sm text-muted-foreground mt-1">Silakan pilih peran atau masuk sebagai Kontraktor</p>
+            <div className="text-center mb-8 relative z-10">
+              <h3 className="text-2xl font-black text-white font-outfit tracking-wide">Portal Masuk</h3>
+              <p className="text-sm text-slate-400 mt-2">Silakan pilih peran atau masuk sebagai <span className="text-amber-400 font-medium">Kontraktor</span></p>
             </div>
 
             {showPasswordForm ? (
@@ -244,20 +245,26 @@ const Login = () => {
                 {/* Contractor Special Button */}
                 <button
                   onClick={() => setShowPasswordForm(true)}
-                  className="w-full group relative overflow-hidden rounded-xl p-3 border border-secondary/30 bg-secondary/10 text-left transition-all hover:bg-secondary/20 hover:border-secondary/50 hover:shadow-[0_0_20px_rgba(251,191,36,0.15)] mb-4"
+                  className="w-full group relative overflow-hidden rounded-2xl p-4 border border-amber-500/40 bg-gradient-to-br from-amber-500/10 to-orange-600/10 text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(245,158,11,0.2)] mb-6"
                 >
-                  <div className="absolute inset-0 pattern-diagonal opacity-20 pointer-events-none" />
+                  <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 mix-blend-overlay transition-opacity pointer-events-none" />
+                  <div className="absolute right-0 top-0 w-32 h-32 bg-amber-500/20 rounded-full blur-3xl -mr-16 -mt-16 transition-transform group-hover:scale-150" />
+                  
                   <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-secondary to-orange-500 flex items-center justify-center text-black shadow-lg">
-                        <HardHat className="w-5 h-5" />
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 p-[1px] shadow-lg shadow-orange-500/30">
+                        <div className="w-full h-full rounded-xl bg-black/20 flex items-center justify-center backdrop-blur-sm">
+                          <HardHat className="w-6 h-6 text-white" />
+                        </div>
                       </div>
                       <div>
-                        <p className="font-bold text-sm text-white">Login Kontraktor</p>
-                        <p className="text-[10px] text-secondary">Via DATA-KONTRAKTOR-OAP</p>
+                        <p className="font-bold text-base text-white font-outfit tracking-wide">Login Kontraktor</p>
+                        <p className="text-xs text-amber-400 font-medium tracking-wider uppercase mt-0.5">Via DATA-KONTRAKTOR-OAP</p>
                       </div>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-secondary opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-amber-500 group-hover:border-amber-500 transition-colors">
+                      <ChevronRight className="w-4 h-4 text-amber-500 group-hover:text-black transition-colors" />
+                    </div>
                   </div>
                 </button>
 
