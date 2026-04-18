@@ -11,11 +11,16 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const OAP_URL = "https://data-kontraktor-oap-web.vercel.app";
 const SIGAP_URL = "https://aplikasi-sigap-dpupr-pbd.vercel.app";
 
 const IntegrationPage = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
   const [contractors, setContractors] = useState<OAPContractor[]>([]);
   const [stats, setStats] = useState<OAPStats | null>(null);
   const [lastSync, setLastSync] = useState<string | null>(null);
@@ -23,6 +28,14 @@ const IntegrationPage = () => {
   const [isChecking, setIsChecking] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<{ online: boolean; latency?: number; error?: string } | null>(null);
   const [search, setSearch] = useState("");
+
+  // Role Validation
+  useEffect(() => {
+    if (user && user.role !== "ADMIN") {
+      toast.error("Akses Ditolak: Hanya Admin yang dapat mengakses halaman integrasi OAP.");
+      navigate("/");
+    }
+  }, [user, navigate]);
 
   // Load cached data on mount
   useEffect(() => {

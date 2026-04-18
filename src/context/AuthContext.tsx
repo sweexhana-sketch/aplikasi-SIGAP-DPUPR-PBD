@@ -6,7 +6,7 @@ export type UserRole =
   | "PPK"
   | "PPTK"
   | "STAF_DINAS"
-  | "OPERATOR"
+  | "KONTRAKTOR_UMUM"
   | "KONSULTAN"
   | "KONTRAKTOR";
 
@@ -53,10 +53,10 @@ export const MOCK_USERS: Record<UserRole, User> = {
     role: "STAF_DINAS",
     nip: "19900404 201501 1 004"
   },
-  OPERATOR: {
+  KONTRAKTOR_UMUM: {
     id: "5",
-    name: "Andi Operator",
-    role: "OPERATOR"
+    name: "CV. Kontraktor Umum",
+    role: "KONTRAKTOR_UMUM"
   },
   KONSULTAN: {
     id: "6",

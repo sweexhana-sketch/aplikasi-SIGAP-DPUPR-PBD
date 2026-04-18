@@ -20,7 +20,7 @@ const WeeklyReport = () => {
 
     // REDIRECT IF NOT AUTHORIZED ROLE
     useEffect(() => {
-        if (user && user.role !== 'OPERATOR' && user.role !== 'KONSULTAN' && user.role !== 'KONTRAKTOR') {
+        if (user && user.role !== 'KONTRAKTOR_UMUM' && user.role !== 'KONSULTAN' && user.role !== 'KONTRAKTOR') {
             navigate('/reports', { replace: true });
         }
     }, [user, navigate]);

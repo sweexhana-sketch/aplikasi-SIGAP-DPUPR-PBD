@@ -39,8 +39,8 @@ const roleConfig = [
     border: "border-teal-500/20 hover:border-teal-500/50"
   },
   { 
-    role: "OPERATOR", label: "Operator Lapangan", icon: Tractor, 
-    desc: "Input Data Lapangan harian", 
+    role: "KONTRAKTOR_UMUM", label: "Login K. Umum", icon: Tractor, 
+    desc: "Akses Kontraktor Non-OAP", 
     gradient: "from-emerald-600 via-emerald-500 to-emerald-700",
     bg: "from-emerald-500/10 to-emerald-700/5",
     border: "border-emerald-500/20 hover:border-emerald-500/50"

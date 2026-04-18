@@ -19,7 +19,7 @@ const Header = () => {
   ];
 
   const canVerify = user?.role === "PPK" || user?.role === "STAF_DINAS" || user?.role === "ADMIN" || user?.role === "PPTK";
-  const canIntegrate = user?.role === "ADMIN" || user?.role === "PPK" || user?.role === "PPTK";
+  const canIntegrate = user?.role === "ADMIN";
 
   const handleBackup = () => {
     import("@/lib/storage").then(({ storage }) => {
@@ -40,7 +40,7 @@ const Header = () => {
       PPK: "from-purple-500 to-blue-500",
       PPTK: "from-blue-500 to-cyan-500",
       STAF_DINAS: "from-cyan-500 to-teal-500",
-      OPERATOR: "from-green-500 to-emerald-500",
+      KONTRAKTOR_UMUM: "from-green-500 to-emerald-500",
       KONSULTAN: "from-yellow-500 to-orange-500",
       KONTRAKTOR: "from-pink-500 to-rose-500",
     };
@@ -50,7 +50,7 @@ const Header = () => {
   const getRoleBadge = (role: string) => {
     const labels: Record<string, string> = {
       ADMIN: "Admin", PPK: "PPK", PPTK: "PPTK",
-      STAF_DINAS: "Staf", OPERATOR: "Operator",
+      STAF_DINAS: "Staf", KONTRAKTOR_UMUM: "K. Umum",
       KONSULTAN: "Konsultan", KONTRAKTOR: "Kontraktor",
     };
     return labels[role] || role;

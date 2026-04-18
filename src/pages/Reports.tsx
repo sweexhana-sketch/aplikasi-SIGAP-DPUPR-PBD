@@ -316,8 +316,8 @@ const Reports = () => {
 
       <section className="container py-8 max-w-4xl">
         <Tabs defaultValue="daily" className="w-full">
-          {/* Only show both tabs for OPERATOR, KONSULTAN, KONTRAKTOR */}
-          {user && (user.role === 'OPERATOR' || user.role === 'KONSULTAN' || user.role === 'KONTRAKTOR') ? (
+          {/* Only show both tabs for KONTRAKTOR_UMUM, KONSULTAN, KONTRAKTOR */}
+          {user && (user.role === 'KONTRAKTOR_UMUM' || user.role === 'KONSULTAN' || user.role === 'KONTRAKTOR') ? (
             <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="daily">Input Laporan Harian</TabsTrigger>
               <TabsTrigger value="print">Cetak Laporan (Mingguan/Bulanan)</TabsTrigger>
@@ -631,8 +631,8 @@ const Reports = () => {
             </Card>
           </TabsContent>
 
-          {/* Only show print tab content for OPERATOR, KONSULTAN, KONTRAKTOR */}
-          {user && (user.role === 'OPERATOR' || user.role === 'KONSULTAN' || user.role === 'KONTRAKTOR') && (
+          {/* Only show print tab content for KONTRAKTOR_UMUM, KONSULTAN, KONTRAKTOR */}
+          {user && (user.role === 'KONTRAKTOR_UMUM' || user.role === 'KONSULTAN' || user.role === 'KONTRAKTOR') && (
             <TabsContent value="print">
               <div className="mb-8">
                 <h1 className="text-3xl font-bold mb-2 text-slate-900">Cetak Laporan Berkala</h1>
