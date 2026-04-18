@@ -1,0 +1,258 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* SI PRO — Papua Barat Daya Construction Theme */
+    /* Primary: Deep Government Blue */
+    --background: 220 45% 7%;
+    --foreground: 48 30% 94%;
+
+    --card: 220 38% 11%;
+    --card-foreground: 48 30% 94%;
+
+    --popover: 220 38% 11%;
+    --popover-foreground: 48 30% 94%;
+
+    /* Papua Government Red-Gold palette */
+    --primary: 212 95% 52%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 38 92% 52%;       /* Papua Gold / Amber */
+    --secondary-foreground: 0 0% 10%;
+
+    --muted: 220 30% 16%;
+    --muted-foreground: 215 18% 55%;
+
+    --accent: 38 92% 52%;
+    --accent-foreground: 0 0% 10%;
+
+    --destructive: 0 84% 58%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 158 78% 38%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 52%;
+    --warning-foreground: 0 0% 10%;
+
+    --border: 220 25% 18%;
+    --input: 220 25% 16%;
+    --ring: 212 95% 52%;
+
+    --radius: 0.75rem;
+
+    /* Construction / Government Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(212 95% 45%), hsl(212 95% 60%));
+    --gradient-gold: linear-gradient(135deg, hsl(38 92% 45%), hsl(45 96% 60%));
+    --gradient-hero: linear-gradient(135deg, hsl(212 95% 45%) 0%, hsl(220 90% 30%) 50%, hsl(15 80% 35%) 100%);
+    --gradient-papua: linear-gradient(135deg, hsl(220 80% 25%) 0%, hsl(38 85% 40%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(220 38% 13%), hsl(220 38% 9%));
+    --gradient-glass: linear-gradient(135deg, hsl(220 38% 15% / 0.85), hsl(220 38% 10% / 0.5));
+
+    /* Shadows */
+    --shadow-elegant: 0 20px 60px -15px hsl(212 95% 52% / 0.25);
+    --shadow-card: 0 4px 24px hsl(220 47% 3% / 0.45);
+    --shadow-gold: 0 8px 30px -8px hsl(38 92% 52% / 0.35);
+    --shadow-neon: 0 0 20px hsl(212 95% 52% / 0.35), 0 0 60px hsl(212 95% 52% / 0.12);
+
+    --sidebar-background: 220 45% 7%;
+    --sidebar-foreground: 48 30% 94%;
+    --sidebar-primary: 212 95% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 30% 16%;
+    --sidebar-accent-foreground: 48 30% 94%;
+    --sidebar-border: 220 25% 18%;
+    --sidebar-ring: 212 95% 52%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
+}
+
+/* ============================================
+   GLASSMORPHISM UTILITIES
+   ============================================ */
+@layer utilities {
+  .glass {
+    background: hsl(220 38% 13% / 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid hsl(212 95% 60% / 0.1);
+  }
+  .glass-card {
+    background: linear-gradient(145deg, hsl(220 38% 14% / 0.9), hsl(220 38% 9% / 0.65));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid hsl(212 95% 60% / 0.12);
+    box-shadow: 0 8px 32px hsl(220 47% 3% / 0.35), inset 0 1px 0 hsl(212 95% 80% / 0.04);
+  }
+  .glass-dark {
+    background: hsl(220 45% 6% / 0.85);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid hsl(220 25% 20% / 0.6);
+  }
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(212 95% 65%), hsl(38 92% 60%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .gradient-text-gold {
+    background: linear-gradient(135deg, hsl(38 92% 52%), hsl(45 96% 65%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .gradient-text-blue {
+    background: linear-gradient(135deg, hsl(212 95% 60%), hsl(200 95% 70%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .glow-primary { box-shadow: var(--shadow-neon); }
+  .glow-gold { box-shadow: var(--shadow-gold); }
+
+  /* Construction pattern overlay */
+  .pattern-diagonal {
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 20px,
+      hsl(38 92% 52% / 0.03) 20px,
+      hsl(38 92% 52% / 0.03) 21px
+    );
+  }
+  .pattern-dots {
+    background-image: radial-gradient(circle, hsl(212 95% 60% / 0.08) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .pattern-grid {
+    background-image:
+      linear-gradient(hsl(212 95% 60% / 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(212 95% 60% / 0.05) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  /* Animated utilities */
+  .animate-float { animation: float 7s ease-in-out infinite; }
+  .animate-pulse-slow { animation: pulse-slow 5s ease-in-out infinite; }
+  .animate-shimmer { background-size: 200% 100%; animation: shimmer 2.5s infinite; }
+  .animate-slide-up { animation: slide-up 0.5s ease-out forwards; }
+  .animate-slide-in-right { animation: slide-in-right 0.4s ease-out forwards; }
+  .animate-glow-pulse { animation: glow-pulse 3s ease-in-out infinite; }
+  .animate-rotate-slow { animation: rotate-slow 25s linear infinite; }
+  .animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
+  .animate-crane { animation: crane-move 8s ease-in-out infinite alternate; }
+}
+
+/* ============================================
+   KEYFRAME ANIMATIONS
+   ============================================ */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-14px) rotate(0.8deg); }
+  66% { transform: translateY(-7px) rotate(-0.8deg); }
+}
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.04); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 15px hsl(212 95% 52% / 0.3); }
+  50% { box-shadow: 0 0 35px hsl(212 95% 52% / 0.6), 0 0 70px hsl(212 95% 52% / 0.2); }
+}
+@keyframes glow-gold {
+  0%, 100% { box-shadow: 0 0 15px hsl(38 92% 52% / 0.3); }
+  50% { box-shadow: 0 0 35px hsl(38 92% 52% / 0.6), 0 0 70px hsl(38 92% 52% / 0.2); }
+}
+@keyframes rotate-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes crane-move {
+  0% { transform: translateX(0px) rotate(0deg); }
+  100% { transform: translateX(12px) rotate(2deg); }
+}
+@keyframes beam-scan {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+@keyframes construction-blink {
+  0%, 45%, 55%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+@layer utilities {
+  .animate-glow-gold { animation: glow-gold 4s ease-in-out infinite; }
+  .animate-beam-scan { animation: beam-scan 4s ease-in-out infinite; }
+  .animate-construction-blink { animation: construction-blink 2s ease-in-out infinite; }
+}
+
+/* ============================================
+   CUSTOM SCROLLBAR
+   ============================================ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: hsl(220 45% 8%); }
+::-webkit-scrollbar-thumb { background: hsl(212 95% 52% / 0.35); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(212 95% 52% / 0.6); }
+
+/* ============================================
+   PREMIUM TABLE
+   ============================================ */
+.premium-table thead tr { background: hsl(220 38% 13%); }
+.premium-table tbody tr:hover { background: hsl(212 95% 52% / 0.04); }
+.premium-table tbody tr { border-color: hsl(220 25% 18%); transition: background 0.15s ease; }
+
+/* ============================================
+   PROGRESS BAR
+   ============================================ */
+.progress-bar-animated {
+  position: relative;
+  overflow: hidden;
+}
+.progress-bar-animated::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; right: 0; bottom: 0;
+  background: linear-gradient(90deg, transparent, hsl(212 95% 80% / 0.18), transparent);
+  animation: shimmer 2.5s infinite;
+}
+
+/* ============================================
+   PRINT OVERRIDES
+   ============================================ */
+@media print {
+  body { background: white !important; color: black !important; }
+  .print\:hidden { display: none !important; }
+}
