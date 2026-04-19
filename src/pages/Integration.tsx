@@ -288,12 +288,12 @@ const IntegrationPage = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs font-mono">
             {[
-              { method: "GET", path: "/api/contractors", desc: "Daftar kontraktor OAP" },
-              { method: "GET", path: "/api/stats", desc: "Statistik platform" },
-              { method: "GET", path: "/api/certifications", desc: "Data sertifikasi" },
-              { method: "GET", path: "/api/projects", desc: "Proyek terkait" },
-              { method: "POST", path: "/api/auth/callback/credentials", desc: "Autentikasi" },
-              { method: "POST", path: "/api/signup", desc: "Registrasi akun" },
+              { method: "GET", path: "/api/integration/contractors", desc: "✅ Daftar kontraktor OAP (publik)" },
+              { method: "GET", path: "/api/integration/stats", desc: "✅ Statistik platform (publik)" },
+              { method: "GET", path: "/api/integration/contractors/:id", desc: "✅ Detail kontraktor (publik)" },
+              { method: "POST", path: "/api/auth/callback/credentials", desc: "Autentikasi akun" },
+              { method: "POST", path: "/api/signup", desc: "Registrasi akun baru" },
+              { method: "GET", path: "/api/certifications", desc: "Data sertifikasi (auth required)" },
             ].map(ep => (
               <div key={ep.path} className="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/5">
                 <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded", 
@@ -349,14 +349,15 @@ const IntegrationPage = () => {
                 <thead>
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">No</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nama Kontraktor</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">NPWP</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nama Perusahaan</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Jenis Usaha</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Klasifikasi</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status OAP</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Verifikasi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {filteredContractors.slice(0, 50).map((c, idx) => (
+                    {filteredContractors.slice(0, 50).map((c, idx) => (
                     <tr key={c.id || idx} className="group">
                       <td className="px-4 py-3 text-muted-foreground text-xs">{idx + 1}</td>
                       <td className="px-4 py-3">
@@ -366,11 +367,16 @@ const IntegrationPage = () => {
                           </div>
                           <div>
                             <p className="font-semibold text-xs text-foreground">{c.name || "-"}</p>
+                            {(c as any).directorName && <p className="text-[10px] text-muted-foreground">Dir: {(c as any).directorName}</p>}
                             {c.email && <p className="text-[10px] text-muted-foreground">{c.email}</p>}
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground font-mono">{c.npwp || "-"}</td>
+                      <td className="px-4 py-3">
+                        {(c as any).companyType ? (
+                          <span className="text-xs text-muted-foreground">{(c as any).companyType}</span>
+                        ) : <span className="text-xs text-muted-foreground">-</span>}
+                      </td>
                       <td className="px-4 py-3">
                         {c.classification ? (
                           <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px]">{c.classification}</Badge>
@@ -384,6 +390,17 @@ const IntegrationPage = () => {
                         ) : (
                           <Badge className="bg-white/5 text-muted-foreground border-white/10 text-[10px]">Non-OAP</Badge>
                         )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {(c as any).status ? (
+                          <Badge className={`text-[10px] ${
+                            (c as any).status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                            (c as any).status === 'pending'  ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                            'bg-red-500/10 text-red-400 border-red-500/20'
+                          }`}>
+                            {(c as any).status}
+                          </Badge>
+                        ) : <span className="text-xs text-muted-foreground">-</span>}
                       </td>
                     </tr>
                   ))}

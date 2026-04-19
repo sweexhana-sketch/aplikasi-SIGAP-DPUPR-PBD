@@ -4,18 +4,56 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DKHMaster, storage, Project } from "@/lib/storage";
 import { useNavigate } from "react-router-dom";
-import { Trash2, Plus, Save } from "lucide-react";
+import { Trash2, Plus, Save, Building2, ChevronDown, Search, RefreshCw, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MOCK_USERS } from "@/context/AuthContext";
+import { integrationService, type OAPContractor } from "@/lib/integrationService";
 
 const CreateProject = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
+
+    // ── OAP Contractor Dropdown State ──────────────────────────
+    const [oapContractors, setOapContractors] = useState<OAPContractor[]>([]);
+    const [contractorSearch, setContractorSearch] = useState("");
+    const [showDropdown, setShowDropdown] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Load data OAP dari localStorage (diisi oleh Admin via Integrasi OAP)
+    useEffect(() => {
+        const cached = integrationService.getLocalContractors();
+        setOapContractors(cached);
+    }, []);
+
+    // Tutup dropdown saat klik di luar
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setShowDropdown(false);
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
+
+    // Filter daftar kontraktor berdasar pencarian
+    const filteredOapContractors = oapContractors.filter(c =>
+        !contractorSearch ||
+        c.name?.toLowerCase().includes(contractorSearch.toLowerCase()) ||
+        c.companyType?.toLowerCase().includes(contractorSearch.toLowerCase())
+    );
+
+    const handleSelectContractor = (contractor: OAPContractor) => {
+        handleContractChange("contractorName", contractor.name);
+        setContractorSearch(contractor.name);
+        setShowDropdown(false);
+    };
+    // ──────────────────────────────────────────────────────────
 
     // Section 1: Contract Data
     const [contractData, setContractData] = useState({
@@ -352,9 +390,85 @@ const CreateProject = () => {
                                 <Label>Jangka Waktu Pelaksanaan</Label>
                                 <Input value={contractData.executionDuration} onChange={e => handleContractChange("executionDuration", e.target.value)} placeholder="Contoh: 120 Hari Kalender" />
                             </div>
-                            <div className="space-y-2">
-                                <Label>Kontraktor Pelaksana</Label>
-                                <Input value={contractData.contractorName} onChange={e => handleContractChange("contractorName", e.target.value)} />
+                            <div className="space-y-2" ref={dropdownRef}>
+                                <div className="flex items-center justify-between">
+                                    <Label>Kontraktor Pelaksana</Label>
+                                    {oapContractors.length > 0 && (
+                                        <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                            <CheckCircle2 className="w-3 h-3" />
+                                            {oapContractors.length} Data OAP
+                                        </span>
+                                    )}
+                                </div>
+
+                                {oapContractors.length > 0 ? (
+                                    /* ── DROPDOWN SEARCHABLE — data dari OAP ── */
+                                    <div className="relative">
+                                        <div
+                                            className="flex items-center border border-input rounded-md bg-background px-3 h-10 cursor-pointer"
+                                            onClick={() => setShowDropdown(v => !v)}
+                                        >
+                                            <Building2 className="w-4 h-4 text-muted-foreground mr-2 flex-shrink-0" />
+                                            <input
+                                                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                                                placeholder="Cari atau ketik nama kontraktor..."
+                                                value={contractorSearch || contractData.contractorName}
+                                                onChange={e => {
+                                                    setContractorSearch(e.target.value);
+                                                    handleContractChange("contractorName", e.target.value);
+                                                    setShowDropdown(true);
+                                                }}
+                                                onFocus={() => setShowDropdown(true)}
+                                            />
+                                            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+                                        </div>
+
+                                        {showDropdown && (
+                                            <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                                {filteredOapContractors.length === 0 ? (
+                                                    <div className="p-3 text-center text-sm text-slate-400">
+                                                        Tidak ada kontraktor yang cocok
+                                                    </div>
+                                                ) : (
+                                                    filteredOapContractors.map((c) => (
+                                                        <button
+                                                            key={c.id}
+                                                            type="button"
+                                                            className="w-full text-left px-4 py-2.5 hover:bg-blue-50 flex items-start gap-3 border-b border-slate-50 last:border-0"
+                                                            onClick={() => handleSelectContractor(c)}
+                                                        >
+                                                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs flex-shrink-0 mt-0.5">
+                                                                {c.name?.[0] || "?"}
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-semibold text-slate-800">{c.name}</p>
+                                                                <p className="text-xs text-slate-500">
+                                                                    {[c.companyType, c.classification, c.city].filter(Boolean).join(" · ")}
+                                                                </p>
+                                                            </div>
+                                                            <span className="ml-auto flex-shrink-0 text-[9px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                                                                OAP
+                                                            </span>
+                                                        </button>
+                                                    ))
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    /* ── FALLBACK — belum ada sync dari Admin ── */
+                                    <div>
+                                        <Input
+                                            value={contractData.contractorName}
+                                            onChange={e => handleContractChange("contractorName", e.target.value)}
+                                            placeholder="Ketik nama kontraktor..."
+                                        />
+                                        <p className="mt-1.5 text-xs text-amber-600 flex items-center gap-1">
+                                            <RefreshCw className="w-3 h-3" />
+                                            Data OAP belum tersinkronkan. Admin perlu melakukan sinkronisasi di halaman Integrasi OAP.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <Label>Mulai Pelaksanaan</Label>
