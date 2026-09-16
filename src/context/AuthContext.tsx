@@ -17,18 +17,69 @@ export interface User {
   role: UserRole;
   avatar?: string;
   nip?: string;
+  skNumber?: string; // Nomor SK Penetapan Pejabat
+  bidang?: string;   // Bidang/Sub-Dinas (Bina Marga, Cipta Karya, SDA, dll)
+  jabatan?: string;  // Jabatan Resmi SK
+  registeredAt?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (role: UserRole) => void;
+  loginWithUser: (user: User) => void;
+  registerAccount: (accountData: Omit<User, "id">) => User;
+  getRegisteredAccounts: (role?: UserRole) => User[];
   logout: () => void;
   isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// MOCK USERS DATA
+// INITIAL SK-BASED ACCOUNTS FOR PPK AND PPTK
+export const DEFAULT_REGISTERED_USERS: User[] = [
+  {
+    id: "ppk-1",
+    name: "Ir. Yohanes Kambu, S.T., M.T.",
+    role: "PPK",
+    nip: "19790412 200501 1 008",
+    skNumber: "800.1/04/SK-PPK/PUPR/2024",
+    bidang: "Bina Marga",
+    jabatan: "Pejabat Pembuat Komitmen Bidang Bina Marga",
+    registeredAt: "2024-01-10"
+  },
+  {
+    id: "ppk-2",
+    name: "Drs. Markus Asmuruf, M.Si.",
+    role: "PPK",
+    nip: "19810815 200804 1 003",
+    skNumber: "800.1/05/SK-PPK/PUPR/2024",
+    bidang: "Cipta Karya",
+    jabatan: "Pejabat Pembuat Komitmen Bidang Cipta Karya",
+    registeredAt: "2024-01-10"
+  },
+  {
+    id: "pptk-1",
+    name: "Stephanus Rumbewas, S.T.",
+    role: "PPTK",
+    nip: "19850320 201101 1 005",
+    skNumber: "800.1/12/SK-PPTK/PUPR/2024",
+    bidang: "Bina Marga",
+    jabatan: "Pejabat Pelaksana Teknis Kegiatan Pembangunan Jalan & Jembatan",
+    registeredAt: "2024-01-12"
+  },
+  {
+    id: "pptk-2",
+    name: "Maria Novita Limbong, S.T.",
+    role: "PPTK",
+    nip: "19891104 201402 2 002",
+    skNumber: "800.1/14/SK-PPTK/PUPR/2024",
+    bidang: "Cipta Karya",
+    jabatan: "Pejabat Pelaksana Teknis Kegiatan Drainase & Sanitasi",
+    registeredAt: "2024-01-12"
+  }
+];
+
+// FALLBACK MOCK USERS DATA FOR DIRECT ROLE LOGIN
 export const MOCK_USERS: Record<UserRole, User> = {
   ADMIN: {
     id: "1",
@@ -36,18 +87,8 @@ export const MOCK_USERS: Record<UserRole, User> = {
     role: "ADMIN",
     nip: "19850101 201001 1 001"
   },
-  PPK: {
-    id: "2",
-    name: "Pejabat Pembuat Komitmen (PPK)",
-    role: "PPK",
-    nip: "19850202 201001 1 002"
-  },
-  PPTK: {
-    id: "3",
-    name: "Pejabat Pelaksana Teknis (PPTK)",
-    role: "PPTK",
-    nip: "19880303 201201 1 003"
-  },
+  PPK: DEFAULT_REGISTERED_USERS[0],
+  PPTK: DEFAULT_REGISTERED_USERS[2],
   STAF_DINAS: {
     id: "4",
     name: "Staf Dinas PUPR",
@@ -77,11 +118,19 @@ export const MOCK_USERS: Record<UserRole, User> = {
   },
 };
 
+const STORAGE_USERS_KEY = "sipro_registered_accounts_v1";
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Check localStorage on mount - updated key to sipro_user
+    // Initialize default accounts in storage if not present
+    const existingAccounts = localStorage.getItem(STORAGE_USERS_KEY);
+    if (!existingAccounts) {
+      localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(DEFAULT_REGISTERED_USERS));
+    }
+
+    // Check localStorage for logged-in user
     const storedUser = localStorage.getItem("sipro_user");
     if (storedUser) {
       try {
@@ -92,11 +141,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const login = (role: UserRole) => {
-    const selectedUser = MOCK_USERS[role];
+  const getRegisteredAccounts = (role?: UserRole): User[] => {
+    try {
+      const data = localStorage.getItem(STORAGE_USERS_KEY);
+      const accounts: User[] = data ? JSON.parse(data) : DEFAULT_REGISTERED_USERS;
+      if (role) {
+        return accounts.filter(a => a.role === role);
+      }
+      return accounts;
+    } catch (e) {
+      return DEFAULT_REGISTERED_USERS;
+    }
+  };
+
+  const registerAccount = (accountData: Omit<User, "id">): User => {
+    const existing = getRegisteredAccounts();
+    const newUser: User = {
+      ...accountData,
+      id: `usr-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      registeredAt: new Date().toISOString().split('T')[0]
+    };
+
+    const updated = [newUser, ...existing];
+    localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(updated));
+    loginWithUser(newUser);
+    return newUser;
+  };
+
+  const loginWithUser = (selectedUser: User) => {
     setUser(selectedUser);
     localStorage.setItem("sipro_user", JSON.stringify(selectedUser));
-    toast.success(`Selamat datang, ${selectedUser.name}!`);
+    toast.success(`Selamat datang, ${selectedUser.name}! (${selectedUser.role})`);
+  };
+
+  const login = (role: UserRole) => {
+    const registered = getRegisteredAccounts(role);
+    const selectedUser = registered.length > 0 ? registered[0] : MOCK_USERS[role];
+    loginWithUser(selectedUser);
   };
 
   const logout = () => {
@@ -106,7 +187,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      loginWithUser,
+      registerAccount, 
+      getRegisteredAccounts,
+      logout, 
+      isAuthenticated: !!user 
+    }}>
       {children}
     </AuthContext.Provider>
   );

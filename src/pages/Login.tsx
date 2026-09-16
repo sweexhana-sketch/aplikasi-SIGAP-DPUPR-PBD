@@ -1,8 +1,8 @@
-import { useAuth, UserRole } from "@/context/AuthContext";
+import { useAuth, UserRole, User } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { 
   Building2, HardHat, UserCog, Users, ClipboardCheck, 
-  Wallet, FileText, ChevronRight, Sparkles, MapPin, Pickaxe, Tractor, ShieldCheck, Crown
+  Wallet, FileText, ChevronRight, Sparkles, MapPin, Pickaxe, Tractor, ShieldCheck, Crown, UserPlus, Check, X, Award
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -25,18 +25,18 @@ const roleConfig = [
     border: "border-slate-500/20 hover:border-slate-500/50"
   },
   { 
-    role: "PPK", label: "PPK", icon: Wallet, 
+    role: "PPK", label: "PPK (SK Penetapan)", icon: Wallet, 
     desc: "Pejabat Pembuat Komitmen", 
     gradient: "from-blue-600 via-blue-500 to-blue-700",
     bg: "from-blue-500/10 to-blue-700/5",
-    border: "border-blue-500/20 hover:border-blue-500/50"
+    border: "border-blue-500/30 hover:border-blue-500/60"
   },
   { 
-    role: "PPTK", label: "PPTK", icon: ClipboardCheck, 
+    role: "PPTK", label: "PPTK (SK Penetapan)", icon: ClipboardCheck, 
     desc: "Pejabat Pelaksana Teknis", 
     gradient: "from-cyan-600 via-cyan-500 to-cyan-700",
     bg: "from-cyan-500/10 to-cyan-700/5",
-    border: "border-cyan-500/20 hover:border-cyan-500/50"
+    border: "border-cyan-500/30 hover:border-cyan-500/60"
   },
   { 
     role: "STAF_DINAS", label: "Staf Dinas PUPR", icon: Users, 
@@ -62,15 +62,59 @@ const roleConfig = [
 ];
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, loginWithUser, registerAccount, getRegisteredAccounts } = useAuth();
   const navigate = useNavigate();
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [selectedRoleModal, setSelectedRoleModal] = useState<UserRole | null>(null);
+  const [showRegisterForm, setShowRegisterForm] = useState(false);
+
+  // Form registration state
+  const [regName, setRegName] = useState("");
+  const [regNip, setRegNip] = useState("");
+  const [regSkNumber, setRegSkNumber] = useState("");
+  const [regRole, setRegRole] = useState<UserRole>("PPK");
+  const [regBidang, setRegBidang] = useState("Bina Marga");
+  const [regJabatan, setRegJabatan] = useState("");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (role: UserRole) => {
-    login(role);
+  const handleRoleClick = (role: UserRole) => {
+    if (role === "PPK" || role === "PPTK") {
+      setSelectedRoleModal(role);
+      setShowRegisterForm(false);
+    } else {
+      login(role);
+      navigate("/");
+    }
+  };
+
+  const handleSelectUserAccount = (userAcc: User) => {
+    loginWithUser(userAcc);
+    setSelectedRoleModal(null);
+    navigate("/");
+  };
+
+  const handleRegisterNewAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!regName.trim() || !regNip.trim() || !regSkNumber.trim()) {
+      toast.error("Nama Lengkap, NIP, dan Nomor SK Penetapan wajib diisi");
+      return;
+    }
+
+    const newAcc = registerAccount({
+      name: regName.trim(),
+      nip: regNip.trim(),
+      skNumber: regSkNumber.trim(),
+      role: regRole,
+      bidang: regBidang,
+      jabatan: regJabatan.trim() || `Pejabat (${regRole}) Bidang ${regBidang}`
+    });
+
+    toast.success(`Akun ${regRole} a.n. ${newAcc.name} berhasil didaftarkan sesuai SK!`);
+    setSelectedRoleModal(null);
+    setShowRegisterForm(false);
     navigate("/");
   };
 
@@ -82,11 +126,7 @@ const Login = () => {
     }
     
     setIsLoading(true);
-    
-    // Simulate API call to OAP
-    // In real app, we would POST to https://data-kontraktor-oap-web.vercel.app/api/auth/callback/credentials
     setTimeout(() => {
-      // Mock successful auth for demo
       if (email.includes('@') && password.length >= 6) {
         login("KONTRAKTOR");
         navigate("/");
@@ -102,23 +142,16 @@ const Login = () => {
       
       {/* Heavy Construction & Government Themed Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Core lighting */}
         <div className="absolute -top-40 -left-20 w-[600px] h-[600px] rounded-full bg-primary/10 blur-3xl animate-pulse-slow" />
         <div className="absolute top-1/3 -right-40 w-[500px] h-[500px] rounded-full bg-secondary/5 blur-3xl" />
         <div className="absolute -bottom-60 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-3xl" />
-        
-        {/* Construction Grid Pattern */}
         <div className="absolute inset-0 opacity-10 pattern-grid" />
         
-        {/* Structural overlays */}
         <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-black/40 to-transparent mix-blend-overlay" />
         <div className="absolute bottom-0 left-0 w-full h-1/3 bg-gradient-to-t from-black/60 to-transparent mix-blend-overlay" />
-
-        {/* Diagonal Warning Stripes Pattern (Subtle) */}
         <div className="absolute top-0 left-0 w-full h-2 pattern-diagonal opacity-30" />
         <div className="absolute bottom-0 left-0 w-full h-2 pattern-diagonal opacity-30" />
 
-        {/* Floating Icons (Crane, Hardhat, Pickaxe) */}
         <div className="absolute top-[15%] left-[10%] opacity-20 text-secondary animate-float">
           <Pickaxe className="w-16 h-16" />
         </div>
@@ -164,20 +197,34 @@ const Login = () => {
           <div className="pt-4 flex flex-wrap items-center justify-center lg:justify-start gap-4">
             <InfoItem icon={MapPin} text="Papua Barat Daya" />
             <InfoItem icon={Building2} text="Infrastruktur Maju" />
-            <InfoItem icon={ShieldCheck} text="Terintegrasi OAP" />
+            <InfoItem icon={ShieldCheck} text="Terintegrasi SK Penetapan" />
           </div>
         </div>
 
         {/* Right Side - Login Panel */}
         <div className="w-full max-w-md shrink-0 animate-slide-up" style={{ animationDelay: '0.2s' }}>
           <div className="rounded-3xl p-8 border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden backdrop-blur-2xl bg-[#0f172a]/60">
-            {/* Inner top glow */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50" />
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-12 bg-cyan-500/20 blur-2xl" />
             
-            <div className="text-center mb-8 relative z-10">
+            <div className="text-center mb-6 relative z-10">
               <h3 className="text-2xl font-black text-white font-outfit tracking-wide">Portal Masuk</h3>
-              <p className="text-sm text-slate-400 mt-2">Silakan pilih peran atau masuk sebagai <span className="text-amber-400 font-medium">Kontraktor</span></p>
+              <p className="text-sm text-slate-400 mt-1">Pilih peran atau registrasi akun <span className="text-amber-400 font-medium">PPK/PPTK SK Penetapan</span></p>
+            </div>
+
+            {/* Direct SK Registration Button */}
+            <div className="mb-4">
+              <Button
+                onClick={() => {
+                  setRegRole("PPK");
+                  setShowRegisterForm(true);
+                  setSelectedRoleModal("PPK");
+                }}
+                className="w-full bg-gradient-to-r from-blue-600/30 via-cyan-600/30 to-teal-600/30 hover:from-blue-600/50 hover:to-teal-600/50 text-cyan-200 border border-cyan-500/40 text-xs font-bold py-2.5 rounded-xl shadow-lg flex items-center justify-center gap-2"
+              >
+                <UserPlus className="w-4 h-4 text-cyan-400" />
+                Registrasi Akun Pejabat (PPK / PPTK SK)
+              </Button>
             </div>
 
             {showPasswordForm ? (
@@ -233,17 +280,6 @@ const Login = () => {
                       {isLoading ? "Mengautentikasi..." : "Masuk Kontraktor"}
                     </Button>
                   </div>
-                  
-                  <div className="text-center pt-2">
-                    <a 
-                      href="https://data-kontraktor-oap-web.vercel.app/account/signin" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-xs text-secondary/70 hover:text-secondary underline underline-offset-4"
-                    >
-                      Lupa Sandi? / Manajemen Akun OAP
-                    </a>
-                  </div>
                 </form>
               </div>
             ) : (
@@ -252,7 +288,7 @@ const Login = () => {
                 {/* Contractor Special Button */}
                 <button
                   onClick={() => setShowPasswordForm(true)}
-                  className="w-full group relative overflow-hidden rounded-2xl p-4 border border-amber-500/40 bg-gradient-to-br from-amber-500/10 to-orange-600/10 text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(245,158,11,0.2)] mb-6"
+                  className="w-full group relative overflow-hidden rounded-2xl p-4 border border-amber-500/40 bg-gradient-to-br from-amber-500/10 to-orange-600/10 text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(245,158,11,0.2)] mb-4"
                 >
                   <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 mix-blend-overlay transition-opacity pointer-events-none" />
                   <div className="absolute right-0 top-0 w-32 h-32 bg-amber-500/20 rounded-full blur-3xl -mr-16 -mt-16 transition-transform group-hover:scale-150" />
@@ -280,7 +316,7 @@ const Login = () => {
                     <span className="w-full border-t border-white/10" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-[#111622] px-2 text-muted-foreground font-semibold tracking-wider">Akses Internal</span>
+                    <span className="bg-[#111622] px-2 text-muted-foreground font-semibold tracking-wider">Akses Peran Pejabat</span>
                   </div>
                 </div>
 
@@ -290,7 +326,7 @@ const Login = () => {
                     return (
                       <button
                         key={item.role}
-                        onClick={() => handleLogin(item.role as UserRole)}
+                        onClick={() => handleRoleClick(item.role as UserRole)}
                         className={cn(
                           "group relative glass rounded-xl p-3 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg",
                           item.border
@@ -314,6 +350,202 @@ const Login = () => {
         </div>
         
       </div>
+
+      {/* SK-BASED PPK & PPTK ACCOUNT SELECTION / REGISTRATION MODAL */}
+      {selectedRoleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-lg glass border border-white/10 rounded-2xl p-6 shadow-2xl relative bg-[#0f172a] text-white">
+            <button 
+              onClick={() => setSelectedRoleModal(null)} 
+              className="absolute top-4 right-4 p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2.5 rounded-xl bg-blue-500/20 border border-blue-500/30 text-blue-400">
+                <Award className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold font-outfit text-white">
+                  Pilih / Buat Akun Pejabat {selectedRoleModal}
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Daftarkan nama lengkap pejabat sesuai SK Penetapan Kepala Dinas PUPR
+                </p>
+              </div>
+            </div>
+
+            {showRegisterForm ? (
+              // FORM BUAT AKUN BARU SESUAI SK
+              <form onSubmit={handleRegisterNewAccount} className="space-y-4">
+                <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-200">
+                  ⚠️ Masukkan nama lengkap beserta gelar dan NIP sesuai SK Penetapan resmi.
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-300">Nama Lengkap (Sesuai SK Penetapan) *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Ir. Alexander Kambuaya, S.T., M.T."
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                    className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-300">NIP (18 Digit) *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="19800510 200604 1 002"
+                      value={regNip}
+                      onChange={(e) => setRegNip(e.target.value)}
+                      className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-300">Peran Pejabat *</label>
+                    <select
+                      value={regRole}
+                      onChange={(e) => setRegRole(e.target.value as UserRole)}
+                      className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-cyan-500"
+                    >
+                      <option value="PPK" className="bg-slate-900 text-white">PPK (Pejabat Pembuat Komitmen)</option>
+                      <option value="PPTK" className="bg-slate-900 text-white">PPTK (Pejabat Pelaksana Teknis)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-300">Nomor SK Penetapan *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: 800.1/20/SK-PPK/PUPR/2024"
+                    value={regSkNumber}
+                    onChange={(e) => setRegSkNumber(e.target.value)}
+                    className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-300">Bidang / Sub-Dinas</label>
+                    <select
+                      value={regBidang}
+                      onChange={(e) => setRegBidang(e.target.value)}
+                      className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-cyan-500"
+                    >
+                      <option value="Bina Marga" className="bg-slate-900">Bina Marga</option>
+                      <option value="Cipta Karya" className="bg-slate-900">Cipta Karya</option>
+                      <option value="Sumber Daya Air" className="bg-slate-900">Sumber Daya Air</option>
+                      <option value="Perumahan & Permukiman" className="bg-slate-900">Perumahan & Permukiman</option>
+                      <option value="Bina Konstruksi" className="bg-slate-900">Bina Konstruksi</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-300">Jabatan Kegiatan SK</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. PPK Pembangunan Jalan"
+                      value={regJabatan}
+                      onChange={(e) => setRegJabatan(e.target.value)}
+                      className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3 flex gap-3">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setShowRegisterForm(false)} 
+                    className="w-1/3 border-white/10 text-slate-300 hover:bg-white/5"
+                  >
+                    Batal
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="w-2/3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold"
+                  >
+                    Daftarkan Akun SK & Masuk
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              // LIST AKUN TERDAFTAR SESUAI SK
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    Daftar Pejabat {selectedRoleModal} Terdaftar SK
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setRegRole(selectedRoleModal);
+                      setShowRegisterForm(true);
+                    }}
+                    className="text-xs text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 gap-1.5"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" /> + Buat Akun Baru
+                  </Button>
+                </div>
+
+                <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                  {getRegisteredAccounts(selectedRoleModal).map((acc) => (
+                    <div
+                      key={acc.id}
+                      onClick={() => handleSelectUserAccount(acc)}
+                      className="p-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/50 cursor-pointer transition-all flex items-center justify-between group"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-sm text-white group-hover:text-cyan-300 transition-colors">
+                            {acc.name}
+                          </p>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono">
+                            {acc.bidang || "PUPR"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 font-mono">NIP: {acc.nip || "-"}</p>
+                        <p className="text-[10px] text-amber-400/90 font-mono">SK: {acc.skNumber || "SK Penetapan Dinas PUPR"}</p>
+                      </div>
+
+                      <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-cyan-500 group-hover:border-cyan-500 text-cyan-400 group-hover:text-black transition-colors">
+                        <ChevronRight className="w-4 h-4" />
+                      </div>
+                    </div>
+                  ))}
+
+                  {getRegisteredAccounts(selectedRoleModal).length === 0 && (
+                    <div className="p-6 text-center text-slate-400 text-xs bg-white/5 rounded-xl border border-white/10">
+                      Belum ada akun {selectedRoleModal} terdaftar. Silakan klik <strong>+ Buat Akun Baru</strong> di atas.
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2">
+                  <Button
+                    onClick={() => {
+                      setRegRole(selectedRoleModal);
+                      setShowRegisterForm(true);
+                    }}
+                    className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-xs py-2.5 rounded-xl shadow-lg"
+                  >
+                    + Daftarkan Akun Nama Lengkap Sesuai SK Penetapan Baru
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

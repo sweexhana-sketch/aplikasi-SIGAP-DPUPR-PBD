@@ -349,14 +349,20 @@ const Verification = () => {
                                             <div className="mt-1">{user?.name || 'Staf Dinas'}</div>
                                         </div>
                                         <div>
-                                            <div className="mb-16">Diperiksa Oleh,<br /><strong>Pejabat Pelaksana Teknis</strong></div>
+                                            <div className="mb-14">Diperiksa Oleh,<br /><strong>Pejabat Pelaksana Teknis (PPTK)</strong></div>
                                             <div className="border-b border-black w-3/4 mx-auto"></div>
-                                            <div className="mt-1">PPTK</div>
+                                            <div className="mt-1 font-semibold">{user?.role === "PPTK" ? user.name : "Stephanus Rumbewas, S.T."}</div>
+                                            <div className="text-[10px] text-slate-600 font-mono">
+                                                NIP. {user?.role === "PPTK" && user?.nip ? user.nip : "19850320 201101 1 005"}
+                                            </div>
                                         </div>
                                         <div>
-                                            <div className="mb-16">Mengetahui,<br /><strong>Pejabat Pembuat Komitmen</strong></div>
+                                            <div className="mb-14">Mengetahui,<br /><strong>Pejabat Pembuat Komitmen (PPK)</strong></div>
                                             <div className="border-b border-black w-3/4 mx-auto"></div>
-                                            <div className="mt-1">PPK</div>
+                                            <div className="mt-1 font-semibold">{user?.role === "PPK" ? user.name : "Ir. Yohanes Kambu, S.T., M.T."}</div>
+                                            <div className="text-[10px] text-slate-600 font-mono">
+                                                NIP. {user?.role === "PPK" && user?.nip ? user.nip : "19790412 200501 1 008"}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
