@@ -1,73 +1,35 @@
-# Welcome to your Lovable project
+# SIGAP - Sistem Informasi dan Pengawasan Proyek
+**Dinas Pekerjaan Umum dan Penataan Ruang (DPUPR) Provinsi Papua Barat Daya**
 
-## Project info
+Aplikasi ini merupakan platform terintegrasi untuk pemantauan, pelaporan, dan verifikasi progres proyek infrastruktur yang dikelola oleh DPUPR Papua Barat Daya. Dilengkapi dengan antarmuka yang modern, fitur WebGIS, dan modul laporan berkala (mingguan & bulanan).
 
-**URL**: https://lovable.dev/projects/c3d0dce5-ea2d-47e0-9a95-7725ffc9ef1e
+## Fitur Utama
+- **Dashboard Monitoring:** Memantau progres fisik, deviasi waktu, dan metrik krusial setiap proyek (S-Curve).
+- **Manajemen Proyek:** Pengelolaan data konstruksi secara lengkap, dari awal kontrak hingga penyelesaian.
+- **Pelaporan Berkala:** Sistem pencatatan realisasi progres mingguan dan bulanan oleh kontraktor.
+- **Verifikasi Bertingkat:** Proses validasi dokumen oleh pengawas / PPK.
+- **WebGIS:** Visualisasi spasial sebaran titik proyek infrastruktur menggunakan data pemetaan geospasial.
 
-## How can I edit this code?
+## Teknologi yang Digunakan
+- **Frontend:** React 18, TypeScript, Vite
+- **Styling:** Tailwind CSS, Shadcn UI
+- **Routing:** React Router v6
+- **State & Data Management:** TanStack React Query
 
-There are several ways of editing your application.
+## Panduan Instalasi Lokal
 
-**Use Lovable**
+1. Pastikan Anda telah menginstal **Node.js** (rekomendasi: v18+).
+2. Kloning repositori ini dan masuk ke direktori proyek.
+3. Jalankan instalasi dependensi:
+   ```bash
+   npm install
+   ```
+4. Jalankan server pengembangan (development server):
+   ```bash
+   npm run dev
+   ```
+5. Akses aplikasi melalui browser di `http://localhost:8080`.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/c3d0dce5-ea2d-47e0-9a95-7725ffc9ef1e) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/c3d0dce5-ea2d-47e0-9a95-7725ffc9ef1e) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Lisensi
+Hak Cipta © Dinas Pekerjaan Umum dan Penataan Ruang (DPUPR) Provinsi Papua Barat Daya.
+Seluruh hak dilindungi undang-undang.
