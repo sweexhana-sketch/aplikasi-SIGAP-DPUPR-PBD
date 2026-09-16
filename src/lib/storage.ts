@@ -180,7 +180,7 @@ export const storage = {
         const itemsStats = project.dkhItems.map(item => {
             const volReal = realizationMap[item.id] || 0;
             // Cap progress at 100% just in case
-            let progressPercent = (volReal / item.contractVol) * 100;
+            const progressPercent = (volReal / item.contractVol) * 100;
             const valReal = volReal * item.unitPrice;
 
             totalRealizationValue += valReal;
