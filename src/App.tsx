@@ -9,7 +9,7 @@ import Reports from "./pages/Reports";
 import WebGIS from "./pages/WebGIS";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider, useAuth, UserRole } from "./context/AuthContext";
 import CreateProject from "./pages/CreateProject";
 import ManageProject from "./pages/ManageProject";
 import Verification from "./pages/Verification";
@@ -19,11 +19,22 @@ import IntegrationPage from "./pages/Integration";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  allowedRoles?: UserRole[];
+}
+
+const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
+  const { user, isAuthenticated } = useAuth();
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
+
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
+
   return <>{children}</>;
 };
 
@@ -38,14 +49,42 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
-            <Route path="/projects/create" element={<ProtectedRoute><CreateProject /></ProtectedRoute>} />
-            <Route path="/projects/:id/manage" element={<ProtectedRoute><ManageProject /></ProtectedRoute>} />
+            <Route 
+              path="/projects/create" 
+              element={
+                <ProtectedRoute allowedRoles={["ADMIN", "PPTK", "PPK"]}>
+                  <CreateProject />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/projects/:id/manage" 
+              element={
+                <ProtectedRoute allowedRoles={["ADMIN", "PPTK", "PPK", "KONSULTAN", "KONTRAKTOR", "KONTRAKTOR_UMUM"]}>
+                  <ManageProject />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/reports/weekly" element={<ProtectedRoute><WeeklyReport /></ProtectedRoute>} />
             <Route path="/reports/monthly" element={<ProtectedRoute><MonthlyReport /></ProtectedRoute>} />
-            <Route path="/verification" element={<ProtectedRoute><Verification /></ProtectedRoute>} />
+            <Route 
+              path="/verification" 
+              element={
+                <ProtectedRoute allowedRoles={["ADMIN", "PPK", "PPTK", "STAF_DINAS"]}>
+                  <Verification />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="/webgis" element={<ProtectedRoute><WebGIS /></ProtectedRoute>} />
-            <Route path="/integration" element={<ProtectedRoute><IntegrationPage /></ProtectedRoute>} />
+            <Route 
+              path="/integration" 
+              element={
+                <ProtectedRoute allowedRoles={["ADMIN"]}>
+                  <IntegrationPage />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

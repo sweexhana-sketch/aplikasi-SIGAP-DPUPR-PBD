@@ -33,23 +33,23 @@ export const MOCK_USERS: Record<UserRole, User> = {
     id: "1",
     name: "Administrator Sistem",
     role: "ADMIN",
-    nip: "19800101 200501 1 001"
+    nip: "19850101 201001 1 001"
   },
   PPK: {
     id: "2",
-    name: "Yakobus t. Pambimbin, ST., M.T.",
+    name: "Pejabat Pembuat Komitmen (PPK)",
     role: "PPK",
     nip: "19850202 201001 1 002"
   },
   PPTK: {
     id: "3",
-    name: "Calvin Asmuruf, ST",
+    name: "Pejabat Pelaksana Teknis (PPTK)",
     role: "PPTK",
-    nip: "19880303 201201 2 003"
+    nip: "19880303 201201 1 003"
   },
   STAF_DINAS: {
     id: "4",
-    name: "MESAK STAF",
+    name: "Staf Dinas PUPR",
     role: "STAF_DINAS",
     nip: "19900404 201501 1 004"
   },
