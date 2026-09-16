@@ -18,7 +18,7 @@ const Header = () => {
     { path: "/webgis", label: "WebGIS", icon: Map },
   ];
 
-  const canVerify = user?.role === "PPK" || user?.role === "STAF_DINAS" || user?.role === "ADMIN" || user?.role === "PPTK";
+  const canVerify = user?.role === "PPK" || user?.role === "STAF_DINAS" || user?.role === "ADMIN" || user?.role === "PPTK" || user?.role === "PIMPINAN";
   const canIntegrate = user?.role === "ADMIN";
 
   const handleBackup = () => {
@@ -37,6 +37,7 @@ const Header = () => {
   const getRoleColor = (role: string) => {
     const colors: Record<string, string> = {
       ADMIN: "from-red-500 to-orange-500",
+      PIMPINAN: "from-amber-400 via-yellow-500 to-amber-600",
       PPK: "from-purple-500 to-blue-500",
       PPTK: "from-blue-500 to-cyan-500",
       STAF_DINAS: "from-cyan-500 to-teal-500",
@@ -49,7 +50,7 @@ const Header = () => {
 
   const getRoleBadge = (role: string) => {
     const labels: Record<string, string> = {
-      ADMIN: "Admin", PPK: "PPK", PPTK: "PPTK",
+      ADMIN: "Admin", PIMPINAN: "Pimpinan / Kadis", PPK: "PPK", PPTK: "PPTK",
       STAF_DINAS: "Staf", KONTRAKTOR_UMUM: "K. Umum",
       KONSULTAN: "Konsultan", KONTRAKTOR: "Kontraktor",
     };

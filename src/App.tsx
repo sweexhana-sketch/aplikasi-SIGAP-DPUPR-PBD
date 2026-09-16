@@ -60,7 +60,7 @@ const App = () => (
             <Route 
               path="/projects/:id/manage" 
               element={
-                <ProtectedRoute allowedRoles={["ADMIN", "PPTK", "PPK", "KONSULTAN", "KONTRAKTOR", "KONTRAKTOR_UMUM"]}>
+                <ProtectedRoute allowedRoles={["ADMIN", "PPTK", "PPK", "KONSULTAN", "KONTRAKTOR", "KONTRAKTOR_UMUM", "PIMPINAN"]}>
                   <ManageProject />
                 </ProtectedRoute>
               } 
@@ -71,7 +71,7 @@ const App = () => (
             <Route 
               path="/verification" 
               element={
-                <ProtectedRoute allowedRoles={["ADMIN", "PPK", "PPTK", "STAF_DINAS"]}>
+                <ProtectedRoute allowedRoles={["ADMIN", "PPK", "PPTK", "STAF_DINAS", "PIMPINAN"]}>
                   <Verification />
                 </ProtectedRoute>
               } 

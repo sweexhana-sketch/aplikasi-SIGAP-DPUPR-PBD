@@ -23,6 +23,7 @@ const Projects = () => {
   }, []);
 
   const canCreateProject = user?.role === "ADMIN" || user?.role === "PPTK" || user?.role === "PPK";
+  const canExportLaporanPPK = canCreateProject || user?.role === "PIMPINAN";
 
   // FILTER LOGIC
   const filteredProjects = projects.filter(p =>
@@ -82,18 +83,20 @@ const Projects = () => {
             <h1 className="text-3xl font-bold mb-2">Daftar Proyek</h1>
             <p className="text-muted-foreground">Kelola dan monitor semua proyek PUPR Papua Barat</p>
           </div>
-          {canCreateProject && (
-            <div className="flex gap-2">
+          <div className="flex gap-2">
+            {canExportLaporanPPK && (
               <Button onClick={handleExportLaporanPPK} variant="outline" className="border-green-600 text-green-700 hover:bg-green-50">
                 <Save className="mr-2 h-4 w-4" />
                 Export Laporan PPK
               </Button>
+            )}
+            {canCreateProject && (
               <Button onClick={() => navigate("/projects/create")} className="bg-primary">
                 <Plus className="mr-2 h-4 w-4" />
                 Buat Proyek Baru
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Filters */}
@@ -125,8 +128,8 @@ const Projects = () => {
               budget={`Rp ${(project.contractValue / 1000000000).toFixed(1)}M`}
               spent="Rp 0"
               onExport={
-                // Only show for PPTK, ADMIN, PPK (Authorized roles)
-                (user?.role === 'PPTK' || user?.role === 'ADMIN' || user?.role === 'PPK')
+                // Show for PPTK, ADMIN, PPK, PIMPINAN
+                (user?.role === 'PPTK' || user?.role === 'ADMIN' || user?.role === 'PPK' || user?.role === 'PIMPINAN')
                   ? async () => {
                     try {
                       const XLSX = await import("xlsx");

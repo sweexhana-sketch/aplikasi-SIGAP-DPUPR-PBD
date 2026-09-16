@@ -2,7 +2,7 @@ import { useAuth, UserRole } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { 
   Building2, HardHat, UserCog, Users, ClipboardCheck, 
-  Wallet, FileText, ChevronRight, Sparkles, MapPin, Pickaxe, Tractor, ShieldCheck
+  Wallet, FileText, ChevronRight, Sparkles, MapPin, Pickaxe, Tractor, ShieldCheck, Crown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -10,6 +10,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 const roleConfig = [
+  { 
+    role: "PIMPINAN", label: "Pimpinan / Kadis", icon: Crown, 
+    desc: "Executive Oversight & Monitoring", 
+    gradient: "from-amber-500 via-amber-400 to-amber-600",
+    bg: "from-amber-500/10 to-amber-600/5",
+    border: "border-amber-500/30 hover:border-amber-500/60 font-semibold"
+  },
   { 
     role: "ADMIN", label: "Hak Akses Penuh", icon: UserCog, 
     desc: "Administrator Sistem Utama", 

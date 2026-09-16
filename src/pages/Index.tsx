@@ -117,7 +117,14 @@ const Index = () => {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Activity className="h-4 w-4 text-primary" />
-                <span className="text-xs font-semibold text-primary uppercase tracking-wider">Dashboard Monitoring</span>
+                <span className="text-xs font-semibold text-primary uppercase tracking-wider">
+                  {user?.role === "PIMPINAN" ? "Dashboard Executive Monitoring Pimpinan" : "Dashboard Monitoring"}
+                </span>
+                {user?.role === "PIMPINAN" && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                    👑 Kadis PUPR Access
+                  </span>
+                )}
               </div>
               <h1 className="text-2xl font-black font-outfit text-foreground">{project.name}</h1>
               <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-1.5">

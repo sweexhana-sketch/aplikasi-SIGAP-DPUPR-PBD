@@ -79,16 +79,30 @@ const Verification = () => {
 
     const getProjectName = (id: string) => projects.find(p => p.id === id)?.name || "Unknown";
 
-    if (user?.role !== "PPK" && user?.role !== "STAF_DINAS" && user?.role !== "ADMIN" && user?.role !== "PPTK") {
-        return <div className="p-10 text-center">Akses Khusus Verifikator (PPK/PPTK/Staf)</div>;
+    if (user?.role !== "PPK" && user?.role !== "STAF_DINAS" && user?.role !== "ADMIN" && user?.role !== "PPTK" && user?.role !== "PIMPINAN") {
+        return <div className="p-10 text-center">Akses Khusus Verifikator & Pimpinan</div>;
     }
 
     return (
         <div className="min-h-screen bg-background pb-20">
             <Header />
             <section className="container py-8">
+                {user?.role === "PIMPINAN" && (
+                    <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold">
+                                👑
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-amber-200">Portal Monitoring Executive Pimpinan Dinas PUPR</h3>
+                                <p className="text-xs text-slate-400">Pemantauan menyeluruh alur persetujuan dan laporan harian yang diinput oleh PPK, PPTK, dan Staf Dinas.</p>
+                            </div>
+                        </div>
+                        <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30">Mode Eksekutif</Badge>
+                    </div>
+                )}
                 <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-3xl font-bold text-slate-900">Verifikasi Laporan Lapangan</h1>
+                    <h1 className="text-3xl font-bold text-slate-900">Verifikasi & Monitoring Laporan Lapangan</h1>
                 </div>
 
                 <Card>

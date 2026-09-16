@@ -8,7 +8,8 @@ export type UserRole =
   | "STAF_DINAS"
   | "KONTRAKTOR_UMUM"
   | "KONSULTAN"
-  | "KONTRAKTOR";
+  | "KONTRAKTOR"
+  | "PIMPINAN";
 
 export interface User {
   id: string;
@@ -67,6 +68,12 @@ export const MOCK_USERS: Record<UserRole, User> = {
     id: "7",
     name: "CV. Kontraktor Maju",
     role: "KONTRAKTOR"
+  },
+  PIMPINAN: {
+    id: "8",
+    name: "Kepala Dinas PUPR (Pimpinan)",
+    role: "PIMPINAN",
+    nip: "19720101 199503 1 001"
   },
 };
 
