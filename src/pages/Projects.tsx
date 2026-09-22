@@ -9,17 +9,35 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Edit } from "lucide-react";
+import { supabase } from "@/lib/supabase"; // Import client Supabase
 
 const Projects = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<Project[]>([]);
+  // Kita sesuaikan tipe data dengan yang ada di Supabase untuk sementara menggunakan any
+  // Nanti Anda bisa membuat interface khusus untuk tipe Supabase jika diperlukan
+  const [projects, setProjects] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load projects from storage
-    const data = storage.getProjects();
-    setProjects(data);
+    // Fungsi untuk mengambil data dari Supabase
+    const fetchProjects = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('sigap_pengawasan')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Gagal mengambil data dari Supabase:", error);
+      } else {
+        setProjects(data || []);
+      }
+      setLoading(false);
+    };
+
+    fetchProjects();
   }, []);
 
   const canCreateProject = user?.role === "ADMIN" || user?.role === "PPTK" || user?.role === "PPK";
@@ -27,7 +45,7 @@ const Projects = () => {
 
   // FILTER LOGIC
   const filteredProjects = projects.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase())
+    p.nama_proyek?.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleExportLaporanPPK = async () => {
@@ -45,19 +63,18 @@ const Projects = () => {
       ];
 
       const dataRows = filteredProjects.map((p, idx) => {
-        const ppn = p.contractValue - (p.contractValue / 1.11); // If stored inclusive
-        // Or if stored inclusive, just use it. CreateProject saves inclusive.
+        const nilaiKontrak = p.nilai_kontrak || 0;
 
         return [
           idx + 1,
-          p.name,
-          p.location,
-          p.contractorName,
-          `${p.contractNo} / ${p.contractDate}`,
-          `${p.spmkNumber || '-'} / ${p.spmkDate || '-'}`,
-          p.executionDuration || '-',
-          p.contractValue,
-          terbilang(p.contractValue) + " Rupiah",
+          p.nama_proyek || "-",
+          p.lokasi || "-",
+          p.penyedia_jasa || "-",
+          "- / -", // p.contractNo / p.contractDate (nanti ditambahkan ke tabel)
+          "- / -", // spmkNumber / spmkDate
+          "-", // executionDuration
+          nilaiKontrak,
+          terbilang(nilaiKontrak) + " Rupiah",
           ""
         ];
       });
@@ -114,18 +131,21 @@ const Projects = () => {
 
         {/* Projects Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProjects.map((project) => (
-            // Adapting the Project Interface to the Card Props
+          {loading ? (
+            <div className="col-span-full text-center py-12 text-muted-foreground">
+              Memuat data proyek...
+            </div>
+          ) : filteredProjects.map((project) => (
             <ProjectCard
               key={project.id}
-              id={project.id}
-              name={project.name}
-              location={project.location}
-              progress={0} // Default for now
-              startDate={project.startDate}
-              endDate={project.endDate}
-              status="active"
-              budget={`Rp ${(project.contractValue / 1000000000).toFixed(1)}M`}
+              id={project.id.toString()}
+              name={project.nama_proyek || "Tanpa Nama"}
+              location={project.lokasi || "-"}
+              progress={project.progress_fisik || 0}
+              startDate={project.tanggal_mulai || "-"}
+              endDate={project.tanggal_selesai || "-"}
+              status={project.status || "active"}
+              budget={project.nilai_kontrak ? `Rp ${(project.nilai_kontrak / 1000000000).toFixed(1)}M` : "Rp 0"}
               spent="Rp 0"
               onExport={
                 // Show for PPTK, ADMIN, PPK, PIMPINAN
@@ -141,10 +161,10 @@ const Projects = () => {
                         [""],
                         ["DAFTAR KUANTITAS DAN HARGA (BOQ)"],
                         [""],
-                        ["NAMA PAKET", ":", project.name],
-                        ["NOMOR KONTRAK", ":", project.contractNo],
-                        ["LOKASI", ":", project.location],
-                        ["KONTRAKTOR", ":", project.contractorName],
+                        ["NAMA PAKET", ":", project.nama_proyek || "-"],
+                        ["NOMOR KONTRAK", ":", "-"],
+                        ["LOKASI", ":", project.lokasi || "-"],
+                        ["KONTRAKTOR", ":", project.penyedia_jasa || "-"],
                         [""],
                         ["NO", "ITEM PEKERJAAN", "SATUAN", "VOLUME", "HARGA SATUAN", "JUMLAH HARGA"]
                       ];
@@ -187,7 +207,8 @@ const Projects = () => {
                       const wb = XLSX.utils.book_new();
                       XLSX.utils.book_append_sheet(wb, ws, "RAB_DKH");
 
-                      XLSX.writeFile(wb, `DKH_${project.name.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
+                      const fileName = project.nama_proyek ? project.nama_proyek.replace(/[^a-zA-Z0-9]/g, '_') : 'Proyek';
+                      XLSX.writeFile(wb, `DKH_${fileName}.xlsx`);
 
                     } catch (err) {
                       console.error(err);
