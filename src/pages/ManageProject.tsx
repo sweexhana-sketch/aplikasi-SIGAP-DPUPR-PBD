@@ -13,6 +13,7 @@ import { Trash2, Plus, Save, History, FileText, ArrowLeft, AlertCircle, Printer 
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { terbilang } from "@/lib/terbilang";
+import { supabase } from "@/lib/supabase";
 
 const ManageProject = () => {
     const { id } = useParams();
@@ -25,20 +26,52 @@ const ManageProject = () => {
     const [contractData, setContractData] = useState<Partial<Project>>({});
     const [items, setItems] = useState<DKHMaster[]>([]);
 
+    const [loading, setLoading] = useState(true);
+
     useEffect(() => {
         if (id) {
-            const data = storage.getProjectById(id);
-            if (data) {
-                setProject(data);
-                resetForm(data);
-            } else {
-                toast.error("Proyek tidak ditemukan");
-                navigate("/projects");
-            }
+            const fetchProject = async () => {
+                setLoading(true);
+                const { data, error } = await supabase
+                    .from('sigap_pengawasan')
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+
+                if (error || !data) {
+                    toast.error("Proyek tidak ditemukan");
+                    navigate("/projects");
+                } else {
+                    // Mapping dari database Supabase ke state aplikasi
+                    const mappedProject: any = {
+                        id: data.id,
+                        name: data.nama_proyek,
+                        location: data.lokasi,
+                        contractNo: data.contract_no || "-", // Kolom yang belum ada di db
+                        contractDate: data.contract_date || "-", 
+                        contractorName: data.penyedia_jasa,
+                        startDate: data.tanggal_mulai,
+                        endDate: data.tanggal_selesai,
+                        spmkNumber: data.spmk_number || "-",
+                        spmkDate: data.spmk_date || "-",
+                        executionDuration: data.execution_duration || "-",
+                        hpsValue: data.nilai_kontrak || 0, // Placeholder hps
+                        contractValue: data.nilai_kontrak,
+                        dkhItems: [], // Akan diisi di Poin 2
+                        history: [],
+                        addendumCount: 0
+                    };
+                    
+                    setProject(mappedProject);
+                    resetForm(mappedProject);
+                }
+                setLoading(false);
+            };
+            fetchProject();
         }
     }, [id, navigate]);
 
-    const resetForm = (data: Project) => {
+    const resetForm = (data: any) => {
         setContractData({
             name: data.name,
             location: data.location,
@@ -274,34 +307,40 @@ const ManageProject = () => {
         // The "Save" action below will verify and push history.
     };
 
-    const handleSaveAddendum = () => {
+    const handleSaveAddendum = async () => {
         if (!project) return;
-        // Create Snapshot of the OLD state
-        const snapshot: ProjectSnapshot = {
-            date: new Date().toISOString(),
-            description: project.addendumCount ? `Addendum 0${project.addendumCount}` : "Kontrak Awal",
-            contractNo: project.contractNo,
-            contractValue: project.contractValue,
-            startDate: project.startDate,
-            endDate: project.endDate,
-            dkhItems: JSON.parse(JSON.stringify(project.dkhItems))
-        };
+        
+        // Kita hanya mengupdate kolom yang ada di database saat ini
+        const { error } = await supabase
+            .from('sigap_pengawasan')
+            .update({
+                nama_proyek: contractData.name,
+                lokasi: contractData.location,
+                penyedia_jasa: contractData.contractorName,
+                nilai_kontrak: totalContractValue,
+                tanggal_mulai: contractData.startDate || null,
+                tanggal_selesai: contractData.endDate || null,
+            })
+            .eq('id', project.id);
 
+        if (error) {
+            console.error("Gagal update proyek:", error);
+            toast.error("Gagal menyimpan perubahan ke database");
+            return;
+        }
+
+        // Simulasi update state lokal agar UI ter-refresh tanpa harus fetch ulang
         const newAddendumCount = (project.addendumCount || 0) + 1;
-
-        const updatedProject: Project = {
+        const updatedProject: any = {
             ...project,
             ...contractData,
             contractValue: totalContractValue,
-            dkhItems: items,
             addendumCount: newAddendumCount,
-            history: [...(project.history || []), snapshot]
         };
 
-        storage.saveProject(updatedProject);
         setProject(updatedProject);
         setIsEditing(false);
-        toast.success(`Addendum 0${newAddendumCount} berhasil disimpan!`);
+        toast.success(`Data proyek berhasil diperbarui!`);
     };
 
     const handlePrint = () => {
