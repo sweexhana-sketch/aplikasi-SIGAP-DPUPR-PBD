@@ -13,6 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MOCK_USERS } from "@/context/AuthContext";
 import { integrationService, type OAPContractor } from "@/lib/integrationService";
+import { supabase } from "@/lib/supabase";
 
 const CreateProject = () => {
     const navigate = useNavigate();
@@ -308,26 +309,36 @@ const CreateProject = () => {
     const ppn = subtotal * 0.11;
     const totalContractValue = subtotal + ppn;
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         // Validation
-        if (!contractData.name || !contractData.contractNo) {
-            toast.error("Mohon lengkapi data kontrak utama");
+        if (!contractData.name) {
+            toast.error("Mohon lengkapi Nama Proyek");
             return;
         }
 
-        const newProject: Project = {
-            id: Date.now().toString(),
-            ...contractData,
-            contractValue: totalContractValue,
-            dkhItems: items.map(item => ({ ...item, projectId: Date.now().toString() })) // temporary projectId assignment
-        };
+        // Insert ke Supabase
+        const { data, error } = await supabase
+            .from('sigap_pengawasan')
+            .insert([
+                {
+                    nama_proyek: contractData.name,
+                    lokasi: contractData.location,
+                    penyedia_jasa: contractData.contractorName,
+                    nilai_kontrak: totalContractValue,
+                    tanggal_mulai: contractData.startDate || null,
+                    tanggal_selesai: contractData.endDate || null,
+                    progress_fisik: 0,
+                    status: 'Berjalan'
+                }
+            ]);
 
-        // Fix projectId link
-        newProject.dkhItems.forEach(i => i.projectId = newProject.id);
-
-        storage.saveProject(newProject);
+        if (error) {
+            console.error("Error insert:", error);
+            toast.error("Gagal menyimpan proyek ke database");
+            return;
+        }
 
         // Clear draft
         localStorage.removeItem("create_project_draft");
