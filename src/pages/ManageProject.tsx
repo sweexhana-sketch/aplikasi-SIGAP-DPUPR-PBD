@@ -47,14 +47,14 @@ const ManageProject = () => {
                         id: data.id,
                         name: data.nama_proyek,
                         location: data.lokasi,
-                        contractNo: data.contract_no || "-", // Kolom yang belum ada di db
+                        contractNo: data.nomor_kontrak || "-", 
                         contractDate: data.contract_date || "-", 
                         contractorName: data.penyedia_jasa,
                         startDate: data.tanggal_mulai,
                         endDate: data.tanggal_selesai,
-                        spmkNumber: data.spmk_number || "-",
+                        spmkNumber: data.nomor_spmk || "-",
                         spmkDate: data.spmk_date || "-",
-                        executionDuration: data.execution_duration || "-",
+                        executionDuration: data.durasi ? `${data.durasi} Hari` : "-",
                         hpsValue: data.nilai_kontrak || 0, // Placeholder hps
                         contractValue: data.nilai_kontrak,
                         dkhItems: [], // Akan diisi di Poin 2
@@ -320,6 +320,9 @@ const ManageProject = () => {
                 nilai_kontrak: totalContractValue,
                 tanggal_mulai: contractData.startDate || null,
                 tanggal_selesai: contractData.endDate || null,
+                nomor_kontrak: contractData.contractNo,
+                nomor_spmk: contractData.spmkNumber,
+                durasi: contractData.executionDuration ? parseInt(contractData.executionDuration.replace(/\D/g, '')) : null,
             })
             .eq('id', project.id);
 

@@ -330,7 +330,10 @@ const CreateProject = () => {
                     tanggal_mulai: contractData.startDate || null,
                     tanggal_selesai: contractData.endDate || null,
                     progress_fisik: 0,
-                    status: 'Berjalan'
+                    status: 'Berjalan',
+                    nomor_kontrak: contractData.contractNo,
+                    nomor_spmk: contractData.spmkNumber,
+                    durasi: contractData.executionDuration ? parseInt(contractData.executionDuration) : null,
                 }
             ]);
 
