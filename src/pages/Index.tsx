@@ -1,51 +1,79 @@
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import SCurveChart from "@/components/SCurveChart";
 import { useAuth } from "@/context/AuthContext";
-import { storage, Project } from "@/lib/storage";
 import { useEffect, useState } from "react";
 import { 
-  ArrowUpRight, ArrowDownRight, AlertTriangle, CheckCircle, 
-  Clock, TrendingUp, Zap, Activity, BarChart2, Target
+  BarChart2, Briefcase, Wallet, Clock, Activity, ArrowRight
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
+import { terbilang } from "@/lib/terbilang";
 
 const Index = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [project, setProject] = useState<Project | null>(null);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState({
+    totalProjects: 0,
+    totalBudget: 0,
+    activeProjects: 0,
+    completedProjects: 0,
+  });
+  const [recentProjects, setRecentProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const projects = storage.getProjects();
-    if (projects.length > 0) {
-      const p = projects[0];
-      setProject(p);
-      setStats(storage.getProjectAnalytics(p.id));
-    }
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('sigap_pengawasan')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Gagal mengambil data dashboard:", error);
+      } else if (data) {
+        const total = data.length;
+        const budget = data.reduce((sum, p) => sum + (Number(p.nilai_kontrak) || 0), 0);
+        const active = data.filter(p => p.status !== 'Selesai').length;
+        const completed = data.filter(p => p.status === 'Selesai').length;
+
+        setStats({
+          totalProjects: total,
+          totalBudget: budget,
+          activeProjects: active,
+          completedProjects: completed,
+        });
+
+        setRecentProjects(data.slice(0, 5)); // Ambil 5 terbaru
+      }
+      setLoading(false);
+    };
+
+    fetchDashboardData();
   }, []);
 
-  if (!project || !stats) {
+  if (loading) {
+    return <div className="min-h-screen bg-background flex items-center justify-center">Memuat Dashboard...</div>;
+  }
+
+  if (stats.totalProjects === 0) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <div className="container py-20 text-center">
-          {/* Empty state */}
           <div className="max-w-md mx-auto">
             <div className="relative mb-6">
               <div className="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-primary/20">
                 <BarChart2 className="h-10 w-10 text-primary/60" />
-              </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-muted rounded-full" style={{ left: 'calc(50% + 24px)', top: '-4px' }}>
-                <div className="w-full h-full rounded-full bg-yellow-400/50 animate-ping" />
               </div>
             </div>
             <h2 className="text-xl font-bold text-foreground mb-2">Belum Ada Data Proyek</h2>
             <p className="text-muted-foreground text-sm mb-6">
               Mulai dengan membuat proyek baru untuk memantau progress dan pelaporan.
             </p>
-            {user?.role === "PPTK" && (
+            {user?.role !== "PIMPINAN" && (
               <Button 
                 onClick={() => navigate("/projects/create")}
                 className="bg-gradient-to-r from-primary to-accent text-white border-0"
@@ -59,46 +87,42 @@ const Index = () => {
     );
   }
 
-  const deviationColor = stats.deviation < -5 ? "text-red-400" : stats.deviation < 0 ? "text-yellow-400" : "text-green-400";
-  const deviationBg = stats.deviation < -5 ? "from-red-500/10 to-red-500/5 border-red-500/20" : stats.deviation < 0 ? "from-yellow-500/10 to-yellow-500/5 border-yellow-500/20" : "from-green-500/10 to-green-500/5 border-green-500/20";
-
   const kpiCards = [
     {
-      title: "Progres Fisik",
-      value: `${stats.overallProgress.toFixed(2)}%`,
-      sub: "Realisasi Lapangan",
-      icon: CheckCircle,
+      title: "Total Proyek",
+      value: stats.totalProjects,
+      sub: "Keseluruhan Proyek",
+      icon: Briefcase,
       gradient: "from-blue-500 to-cyan-500",
       bg: "from-blue-500/10 to-cyan-500/5",
       border: "border-blue-500/20",
     },
     {
-      title: "Target Rencana",
-      value: `${stats.plannedProgress.toFixed(2)}%`,
-      sub: "Berdasarkan Jadwal",
-      icon: Target,
+      title: "Total Anggaran",
+      value: `Rp ${(stats.totalBudget / 1e9).toFixed(1)} M`,
+      sub: "Akumulasi Nilai Kontrak",
+      icon: Wallet,
       gradient: "from-purple-500 to-violet-500",
       bg: "from-purple-500/10 to-violet-500/5",
       border: "border-purple-500/20",
     },
     {
-      title: "Deviasi",
-      value: `${stats.deviation >= 0 ? "+" : ""}${stats.deviation.toFixed(2)}%`,
-      sub: stats.deviation < -5 ? "⚠ KRITIS" : stats.deviation < 0 ? "Sedikit Terlambat" : "On Track",
-      icon: stats.deviation < 0 ? ArrowDownRight : ArrowUpRight,
-      gradient: stats.deviation < -5 ? "from-red-500 to-rose-500" : stats.deviation < 0 ? "from-yellow-500 to-orange-500" : "from-green-500 to-emerald-500",
-      bg: deviationBg,
-      border: stats.deviation < -5 ? "border-red-500/20" : stats.deviation < 0 ? "border-yellow-500/20" : "border-green-500/20",
-      valueColor: deviationColor,
-    },
-    {
-      title: "Sisa Waktu",
-      value: `${stats.daysRemaining}`,
-      sub: "Hari Kalender",
-      icon: Clock,
+      title: "Proyek Aktif",
+      value: stats.activeProjects,
+      sub: "Sedang Berjalan",
+      icon: Activity,
       gradient: "from-orange-500 to-amber-500",
       bg: "from-orange-500/10 to-amber-500/5",
       border: "border-orange-500/20",
+    },
+    {
+      title: "Proyek Selesai",
+      value: stats.completedProjects,
+      sub: "Telah Diserahterimakan",
+      icon: CheckCircle,
+      gradient: "from-green-500 to-emerald-500",
+      bg: "from-green-500/10 to-emerald-500/5",
+      border: "border-green-500/20",
     },
   ];
 
@@ -118,33 +142,24 @@ const Index = () => {
               <div className="flex items-center gap-2 mb-1">
                 <Activity className="h-4 w-4 text-primary" />
                 <span className="text-xs font-semibold text-primary uppercase tracking-wider">
-                  {user?.role === "PIMPINAN" ? "Dashboard Executive Monitoring Pimpinan" : "Dashboard Monitoring"}
+                  {user?.role === "PIMPINAN" ? "Dashboard Executive" : "Dashboard Ringkasan"}
                 </span>
-                {user?.role === "PIMPINAN" && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
-                    👑 Kadis PUPR Access
-                  </span>
-                )}
               </div>
-              <h1 className="text-2xl font-black font-outfit text-foreground">{project.name}</h1>
-              <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary" />
-                {project.location} · TA {project.fiscalYear}
+              <h1 className="text-3xl font-black font-outfit text-foreground">Sistem Pengawasan Proyek</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Dinas Pekerjaan Umum dan Penataan Ruang Provinsi Papua Barat Daya
               </p>
             </div>
-            <div className="glass-card rounded-xl px-5 py-3 border border-white/10 text-right">
-              <p className="text-xs text-muted-foreground font-medium">Nilai Kontrak</p>
-              <p className="text-xl font-black font-outfit gradient-text">
-                Rp {(project.contractValue / 1e9).toFixed(2)} M
-              </p>
-              <p className="text-xs text-muted-foreground">{project.contractorName}</p>
-            </div>
+            {user?.role !== "PIMPINAN" && (
+              <Button onClick={() => navigate("/projects/create")} className="bg-primary">
+                Buat Proyek Baru
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
       <section className="container py-8 space-y-6">
-
         {/* KPI Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {kpiCards.map((card, idx) => {
@@ -152,8 +167,7 @@ const Index = () => {
             return (
               <div
                 key={idx}
-                className={cn("glass-card rounded-xl p-5 border bg-gradient-to-br transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl animate-slide-up", card.bg, card.border)}
-                style={{ animationDelay: `${idx * 0.08}s` }}
+                className={cn("glass-card rounded-xl p-5 border bg-gradient-to-br transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl", card.bg, card.border)}
               >
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs font-semibold text-muted-foreground">{card.title}</span>
@@ -161,115 +175,52 @@ const Index = () => {
                     <Icon className="h-3.5 w-3.5 text-white" />
                   </div>
                 </div>
-                <div className={cn("text-3xl font-black font-outfit mb-1", card.valueColor || "text-foreground")}>
+                <div className="text-3xl font-black font-outfit mb-1 text-foreground">
                   {card.value}
                 </div>
                 <p className="text-xs text-muted-foreground">{card.sub}</p>
-
-                {/* Progress Bar for Progres Fisik */}
-                {idx === 0 && (
-                  <div className="mt-3 h-1.5 rounded-full bg-white/10 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-1000 progress-bar-animated"
-                      style={{ width: `${Math.min(100, stats.overallProgress)}%` }}
-                    />
-                  </div>
-                )}
-                {idx === 1 && (
-                  <div className="mt-3 h-1.5 rounded-full bg-white/10 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-purple-500 to-violet-500"
-                      style={{ width: `${Math.min(100, stats.plannedProgress)}%` }}
-                    />
-                  </div>
-                )}
               </div>
             );
           })}
         </div>
 
-        {/* S-Curve Chart */}
-        <div className="glass-card rounded-xl border border-white/10 overflow-hidden animate-slide-up" style={{ animationDelay: '0.3s' }}>
-          <SCurveChart projectId={project.id} />
-        </div>
-
-        {/* Items Table */}
-        <div className="glass-card rounded-xl border border-white/10 overflow-hidden animate-slide-up" style={{ animationDelay: '0.4s' }}>
-          <div className="p-5 border-b border-white/5">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-primary/20">
-                <TrendingUp className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-bold text-base">Pantauan Item Pekerjaan</h3>
-                <p className="text-xs text-muted-foreground">Statistik realisasi per item pekerjaan</p>
-              </div>
+        {/* Recent Projects Table */}
+        <div className="glass-card rounded-xl border border-white/10 overflow-hidden">
+          <div className="p-5 border-b border-white/5 flex justify-between items-center">
+            <div>
+              <h3 className="font-bold text-base">Proyek Terbaru</h3>
+              <p className="text-xs text-muted-foreground">5 Proyek yang baru saja ditambahkan</p>
             </div>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/projects')} className="text-primary hover:text-primary/80">
+              Lihat Semua <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm premium-table">
               <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Uraian Pekerjaan</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bobot</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vol. Kontrak</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Terpasang</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Progres</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nama Proyek</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Lokasi</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Penyedia Jasa</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nilai Kontrak</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {stats.itemsStats.map((item: any) => {
-                  let statusStyle = "bg-green-500/10 text-green-400 border-green-500/20";
-                  let statusText = "On Track";
-                  if (item.progressPercent === 0) {
-                    statusStyle = "bg-red-500/10 text-red-400 border-red-500/20";
-                    statusText = "Belum Mulai";
-                  } else if (item.progressPercent < 50) {
-                    statusStyle = "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
-                    statusText = "Berjalan";
-                  } else if (item.progressPercent >= 100) {
-                    statusStyle = "bg-blue-500/10 text-blue-400 border-blue-500/20";
-                    statusText = "Selesai";
-                  }
-
-                  const progressPct = Math.min(100, item.progressPercent);
-                  const barColor = item.progressPercent >= 100 ? "from-blue-500 to-cyan-500"
-                    : item.progressPercent >= 50 ? "from-green-500 to-emerald-500"
-                    : item.progressPercent > 0 ? "from-yellow-500 to-orange-500"
-                    : "from-red-500 to-rose-500";
-
-                  return (
-                    <tr key={item.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                      <td className="px-4 py-3">
-                        <p className="font-semibold text-foreground text-sm">{item.description}</p>
-                        <p className="text-[10px] text-muted-foreground font-mono">{item.itemCode}</p>
-                      </td>
-                      <td className="px-4 py-3 text-right text-sm text-muted-foreground">{item.weight?.toFixed(2)}%</td>
-                      <td className="px-4 py-3 text-right text-sm text-muted-foreground">{item.contractVol} {item.unit}</td>
-                      <td className="px-4 py-3 text-right text-sm text-foreground font-medium">{item.volReal}</td>
-                      <td className="px-4 py-3 text-right min-w-[120px]">
-                        <div className="flex items-center gap-2 justify-end">
-                          <div className="flex-1 max-w-[80px] h-1.5 rounded-full bg-white/10 overflow-hidden">
-                            <div
-                              className={cn("h-full rounded-full bg-gradient-to-r", barColor)}
-                              style={{ width: `${progressPct}%` }}
-                            />
-                          </div>
-                          <span className="text-xs font-medium text-foreground w-10 text-right">
-                            {item.progressPercent.toFixed(1)}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border", statusStyle)}>
-                          {statusText}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {recentProjects.map((p: any) => (
+                  <tr key={p.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer" onClick={() => navigate(`/projects/${p.id}/manage`)}>
+                    <td className="px-4 py-3 font-medium">{p.nama_proyek}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{p.lokasi}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{p.penyedia_jasa}</td>
+                    <td className="px-4 py-3 text-right font-medium text-primary">Rp {(p.nilai_kontrak / 1e9).toFixed(1)} M</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-blue-500/10 text-blue-400 border-blue-500/20">
+                        {p.status || 'Berjalan'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
