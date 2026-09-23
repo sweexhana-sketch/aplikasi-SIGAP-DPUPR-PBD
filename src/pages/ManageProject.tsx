@@ -32,16 +32,28 @@ const ManageProject = () => {
         if (id) {
             const fetchProject = async () => {
                 setLoading(true);
-                const { data, error } = await supabase
-                    .from('sigap_pengawasan')
-                    .select('*')
-                    .eq('id', id)
-                    .single();
+                // Fetch project data and DKH items concurrently
+                const [ { data, error }, { data: dkhData, error: dkhError } ] = await Promise.all([
+                    supabase.from('sigap_pengawasan').select('*').eq('id', id).single(),
+                    supabase.from('sigap_dkh_items').select('*').eq('project_id', id).order('id', { ascending: true })
+                ]);
 
                 if (error || !data) {
                     toast.error("Proyek tidak ditemukan");
                     navigate("/projects");
                 } else {
+                    // Mapping DKH Items
+                    const mappedItems = (dkhData || []).map((item: any) => ({
+                        id: item.id.toString(),
+                        projectId: data.id.toString(),
+                        itemCode: item.item_code || "",
+                        description: item.description || "",
+                        unit: item.unit || "",
+                        contractVol: item.volume || 0,
+                        unitPrice: item.unit_price || 0,
+                        totalPrice: item.total_price || 0
+                    }));
+
                     // Mapping dari database Supabase ke state aplikasi
                     const mappedProject: any = {
                         id: data.id,
@@ -55,9 +67,9 @@ const ManageProject = () => {
                         spmkNumber: data.nomor_spmk || "-",
                         spmkDate: data.spmk_date || "-",
                         executionDuration: data.durasi ? `${data.durasi} Hari` : "-",
-                        hpsValue: data.nilai_kontrak || 0, // Placeholder hps
+                        hpsValue: data.nilai_kontrak || 0,
                         contractValue: data.nilai_kontrak,
-                        dkhItems: [], // Akan diisi di Poin 2
+                        dkhItems: mappedItems, // Sekarang diisi dengan data DKH dari Supabase
                         history: [],
                         addendumCount: 0
                     };
@@ -84,7 +96,7 @@ const ManageProject = () => {
             spmkDate: data.spmkDate,
             executionDuration: data.executionDuration,
         });
-        setItems(JSON.parse(JSON.stringify(data.dkhItems))); // Deep copy
+        setItems(data.dkhItems || []); // Update state items
     };
 
     const handleContractChange = (field: string, value: any) => {
@@ -332,18 +344,46 @@ const ManageProject = () => {
             return;
         }
 
+        // Simpan pembaruan DKH Items
+        // 1. Hapus item lama berdasarkan project_id
+        await supabase.from('sigap_dkh_items').delete().eq('project_id', project.id);
+
+        // 2. Insert item baru
+        const validItems = items.filter(i => i.description || i.totalPrice > 0);
+        if (validItems.length > 0) {
+            const itemsToInsert = validItems.map(item => ({
+                project_id: project.id,
+                item_code: item.itemCode,
+                description: item.description,
+                unit: item.unit,
+                volume: item.contractVol,
+                unit_price: item.unitPrice,
+                total_price: item.totalPrice
+            }));
+
+            const { error: itemsError } = await supabase
+                .from('sigap_dkh_items')
+                .insert(itemsToInsert);
+
+            if (itemsError) {
+                console.error("Error insert DKH items on Addendum:", itemsError);
+                toast.error("Proyek terupdate, tetapi gagal menyimpan item DKH");
+            }
+        }
+
         // Simulasi update state lokal agar UI ter-refresh tanpa harus fetch ulang
         const newAddendumCount = (project.addendumCount || 0) + 1;
         const updatedProject: any = {
             ...project,
             ...contractData,
             contractValue: totalContractValue,
+            dkhItems: validItems, // Update item lokal
             addendumCount: newAddendumCount,
         };
 
         setProject(updatedProject);
         setIsEditing(false);
-        toast.success(`Data proyek berhasil diperbarui!`);
+        toast.success(`Data proyek dan RAB berhasil diperbarui!`);
     };
 
     const handlePrint = () => {

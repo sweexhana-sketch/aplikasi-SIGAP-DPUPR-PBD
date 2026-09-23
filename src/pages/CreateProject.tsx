@@ -319,7 +319,7 @@ const CreateProject = () => {
         }
 
         // Insert ke Supabase
-        const { data, error } = await supabase
+        const { data: projectData, error: projectError } = await supabase
             .from('sigap_pengawasan')
             .insert([
                 {
@@ -333,14 +333,39 @@ const CreateProject = () => {
                     status: 'Berjalan',
                     nomor_kontrak: contractData.contractNo,
                     nomor_spmk: contractData.spmkNumber,
-                    durasi: contractData.executionDuration ? parseInt(contractData.executionDuration) : null,
+                    durasi: contractData.executionDuration ? parseInt(contractData.executionDuration.replace(/\D/g, '')) : null,
                 }
-            ]);
+            ])
+            .select()
+            .single();
 
-        if (error) {
-            console.error("Error insert:", error);
+        if (projectError || !projectData) {
+            console.error("Error insert project:", projectError);
             toast.error("Gagal menyimpan proyek ke database");
             return;
+        }
+
+        // Insert item DKH
+        const validItems = items.filter(i => i.description || i.totalPrice > 0);
+        if (validItems.length > 0) {
+            const itemsToInsert = validItems.map(item => ({
+                project_id: projectData.id,
+                item_code: item.itemCode,
+                description: item.description,
+                unit: item.unit,
+                volume: item.contractVol,
+                unit_price: item.unitPrice,
+                total_price: item.totalPrice
+            }));
+
+            const { error: itemsError } = await supabase
+                .from('sigap_dkh_items')
+                .insert(itemsToInsert);
+
+            if (itemsError) {
+                console.error("Error insert DKH items:", itemsError);
+                toast.error("Proyek berhasil dibuat, tetapi gagal menyimpan item DKH");
+            }
         }
 
         // Clear draft
