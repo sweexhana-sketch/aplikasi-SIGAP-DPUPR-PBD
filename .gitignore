@@ -25,3 +25,12 @@ dist-ssr
 
 .vercel
 .env
+# Python/Streamlit runtime and generated contract output
+__pycache__/
+*.py[cod]
+.streamlit/
+contract_generator/output/
+contract_generator/uploads/
+*.docx~
+.env.*
+!.env.example

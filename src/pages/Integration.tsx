@@ -37,20 +37,20 @@ const IntegrationPage = () => {
     }
   }, [user, navigate]);
 
-  // Load cached data on mount
-  useEffect(() => {
-    setContractors(integrationService.getLocalContractors());
-    setStats(integrationService.getLocalStats());
-    setLastSync(integrationService.getLastSync());
-    checkConnection();
-  }, []);
-
   const checkConnection = useCallback(async () => {
     setIsChecking(true);
     const status = await integrationService.checkConnection();
     setConnectionStatus(status);
     setIsChecking(false);
   }, []);
+
+  // Load cached data on mount
+  useEffect(() => {
+    setContractors(integrationService.getLocalContractors());
+    setStats(integrationService.getLocalStats());
+    setLastSync(integrationService.getLastSync());
+    void checkConnection();
+  }, [checkConnection]);
 
   const handleSync = async () => {
     setIsSyncing(true);
