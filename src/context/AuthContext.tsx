@@ -21,6 +21,21 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const fetchUserProfile = async (userId: string, email?: string): Promise<User> => {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("name, role")
+    .eq("id", userId)
+    .single();
+
+  return {
+    id: userId,
+    email: email,
+    name: profile?.name || email?.split("@")[0] || "User",
+    role: (profile?.role as UserRole) || "KONTRAKTOR",
+  };
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,13 +46,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
-        // Map supabase user to our app User format. Default role is ADMIN for now.
-        setUser({
-          id: session.user.id,
-          email: session.user.email,
-          name: session.user.email?.split('@')[0] || "User",
-          role: "ADMIN" 
-        });
+        const profile = await fetchUserProfile(session.user.id, session.user.email);
+        setUser(profile);
       }
       setLoading(false);
     };
@@ -45,14 +55,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkSession();
 
     // Listen for changes on auth state
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email,
-          name: session.user.email?.split('@')[0] || "User",
-          role: "ADMIN"
-        });
+        const profile = await fetchUserProfile(session.user.id, session.user.email);
+        setUser(profile);
       } else {
         setUser(null);
       }
