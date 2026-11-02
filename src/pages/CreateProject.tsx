@@ -10,8 +10,6 @@ import { useNavigate } from "react-router-dom";
 import { Trash2, Plus, Save, Building2, ChevronDown, Search, RefreshCw, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MOCK_USERS } from "@/context/AuthContext";
 import { integrationService, type OAPContractor } from "@/lib/integrationService";
 import { supabase } from "@/lib/supabase";
 

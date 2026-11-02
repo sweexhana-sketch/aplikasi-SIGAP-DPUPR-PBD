@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle, XCircle, Eye, Calendar, User, Clock, Printer, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/lib/supabase";
 
 const Verification = () => {
     const { user } = useAuth();
@@ -17,35 +18,104 @@ const Verification = () => {
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
+    // Load laporan dari Supabase
     useEffect(() => {
-        setProjects(storage.getProjects());
-        // In real app, we would fetch ALL reports or filter by assignment
-        // For mock, we iterate all projects and get reports
-        const allProjects = storage.getProjects();
-        let allReports: DailyReport[] = [];
-        allProjects.forEach(p => {
-            const projReports = storage.getReports(p.id);
-            allReports = [...allReports, ...projReports];
-        });
-        // Sort by date desc
-        setReports(allReports.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        const loadData = async () => {
+            // 1. Load proyek dari Supabase
+            const { data: projData } = await supabase
+                .from('sigap_pengawasan')
+                .select('id, nama_proyek, lokasi, nilai_kontrak, penyedia_jasa, tanggal_mulai, tanggal_selesai')
+                .order('created_at', { ascending: false });
+
+            let mappedProjects: Project[] = [];
+            if (projData) {
+                mappedProjects = projData.map((p: any) => ({
+                    id: p.id,
+                    name: p.nama_proyek,
+                    location: p.lokasi,
+                    fiscalYear: '',
+                    contractNo: '',
+                    contractDate: '',
+                    hpsValue: 0,
+                    contractValue: p.nilai_kontrak || 0,
+                    contractorName: p.penyedia_jasa || '',
+                    startDate: p.tanggal_mulai || '',
+                    endDate: p.tanggal_selesai || '',
+                    dkhItems: [],
+                }));
+                setProjects(mappedProjects);
+            }
+
+            // 2. Load laporan harian dari Supabase + items
+            const { data: reportData, error: reportError } = await supabase
+                .from('sigap_daily_reports')
+                .select(`
+                    id, project_id, report_date, weather, manpower,
+                    findings, coords, photo_urls, is_verified, created_at,
+                    sigap_daily_report_items (id, dkh_item_id, day_vol)
+                `)
+                .order('report_date', { ascending: false });
+
+            if (reportError) {
+                console.error('Gagal memuat laporan dari Supabase:', reportError);
+                // Fallback ke localStorage
+                const allProjects = storage.getProjects();
+                let allReports: DailyReport[] = [];
+                allProjects.forEach(p => {
+                    const projReports = storage.getReports(p.id);
+                    allReports = [...allReports, ...projReports];
+                });
+                setReports(allReports.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            } else if (reportData) {
+                const mapped: DailyReport[] = reportData.map((r: any) => ({
+                    id: r.id,
+                    projectId: r.project_id,
+                    date: r.report_date,
+                    weather: r.weather || 'Cerah',
+                    manpower: r.manpower || 0,
+                    findings: r.findings || '',
+                    coords: r.coords || '',
+                    photoUrls: r.photo_urls || [],
+                    photoUrl: r.photo_urls?.[0] || '',
+                    isVerified: r.is_verified || false,
+                    items: (r.sigap_daily_report_items || []).map((item: any) => ({
+                        dkhId: item.dkh_item_id,
+                        dayVol: item.day_vol,
+                    })),
+                }));
+                setReports(mapped);
+            }
+        };
+        loadData();
     }, []);
 
-    const handleVerify = (reportId: string) => {
-        // In a real app we would call an API
-        // Here we need to update the local storage. 
-        // Since our storage helper is simple, we might need a dedicated 'updateReport' method or just hack it.
+    const handleVerify = async (reportId: string) => {
+        try {
+            const { error } = await supabase
+                .from('sigap_daily_reports')
+                .update({
+                    is_verified: true,
+                    verified_by: user?.id || null,
+                    verified_at: new Date().toISOString(),
+                })
+                .eq('id', reportId);
 
-        // Hack for mock storage update:
-        const data = localStorage.getItem("sipro_reports_v1");
-        if (data) {
-            let all: DailyReport[] = JSON.parse(data);
-            all = all.map(r => r.id === reportId ? { ...r, isVerified: true } : r);
-            localStorage.setItem("sipro_reports_v1", JSON.stringify(all));
+            if (error) throw error;
 
             // Update local state
             setReports(prev => prev.map(r => r.id === reportId ? { ...r, isVerified: true } : r));
             toast.success("Laporan berhasil diverifikasi");
+        } catch (err: any) {
+            console.error('Gagal memverifikasi:', err);
+            // Fallback ke localStorage
+            const data = localStorage.getItem("sipro_reports_v1");
+            if (data) {
+                let all: DailyReport[] = JSON.parse(data);
+                all = all.map(r => r.id === reportId ? { ...r, isVerified: true } : r);
+                localStorage.setItem("sipro_reports_v1", JSON.stringify(all));
+            }
+            setReports(prev => prev.map(r => r.id === reportId ? { ...r, isVerified: true } : r));
+            toast.warning(`Diverifikasi secara lokal. Error: ${err.message}`);
         }
     };
 

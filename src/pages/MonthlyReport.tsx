@@ -8,6 +8,7 @@ import { Printer, Calendar } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 
 const MonthlyReport = () => {
     const { user } = useAuth();
@@ -34,35 +35,130 @@ const MonthlyReport = () => {
     const [startDate, setStartDate] = useState<string>(firstDay.toISOString().split('T')[0]);
     const [endDate, setEndDate] = useState<string>(lastDay.toISOString().split('T')[0]);
 
+    // Load proyek dari Supabase
     useEffect(() => {
-        setProjects(storage.getProjects());
+        const loadProjects = async () => {
+            const { data, error } = await supabase
+                .from('sigap_pengawasan')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error || !data) {
+                setProjects(storage.getProjects());
+            } else {
+                setProjects(data.map((p: any) => ({
+                    id: p.id,
+                    name: p.nama_proyek,
+                    location: p.lokasi,
+                    fiscalYear: p.tahun_anggaran || '',
+                    contractNo: p.nomor_kontrak || '',
+                    contractDate: p.tanggal_kontrak || '',
+                    hpsValue: p.hps || 0,
+                    contractValue: p.nilai_kontrak || 0,
+                    contractorName: p.penyedia_jasa || '',
+                    startDate: p.tanggal_mulai || '',
+                    endDate: p.tanggal_selesai || '',
+                    dkhItems: [],
+                })));
+            }
+        };
+        loadProjects();
     }, []);
 
     useEffect(() => {
         if (selectedProjectId && startDate && endDate) {
-            const p = storage.getProjectById(selectedProjectId) || null;
-            setProject(p);
-            if (p) {
-                // Use the new Date-Range Analytics
-                const s = new Date(startDate);
-                const e = new Date(endDate);
-                setStats(storage.getProjectAnalyticsByDate(p.id, s, e));
-                setSCurveData(storage.getSCurveData(p.id));
+            const loadDetail = async () => {
+                // Load DKH items
+                const { data: dkhData } = await supabase
+                    .from('sigap_dkh_items')
+                    .select('*')
+                    .eq('project_id', selectedProjectId);
+                const dkhItems = (dkhData || []).map((item: any) => ({
+                    id: item.id, projectId: item.project_id,
+                    itemCode: item.item_code || '', description: item.description || '',
+                    unit: item.unit || '', contractVol: item.contract_vol || 0,
+                    unitPrice: item.unit_price || 0, totalPrice: item.total_price || 0,
+                    weight: item.weight || 0,
+                }));
+                const base = projects.find(p => p.id === selectedProjectId);
+                const fullProject = base ? { ...base, dkhItems } : null;
+                setProject(fullProject);
 
-                // Get findings from all reports for this project within range
-                const reports = storage.getReports(p.id);
-                const periodReports = reports.filter(r => {
-                    const d = new Date(r.date);
-                    return d >= s && d <= e;
-                });
+                if (fullProject && fullProject.contractValue > 0) {
+                    const s = new Date(startDate);
+                    const e = new Date(endDate);
 
-                const allFindings = periodReports
-                    .filter(r => r.findings)
-                    .map(r => `${r.date}: ${r.findings}`);
-                setFindings(allFindings);
-            }
+                    // Load semua laporan proyek dari Supabase
+                    const { data: reportData } = await supabase
+                        .from('sigap_daily_reports')
+                        .select(`id, report_date, findings, sigap_daily_report_items(dkh_item_id, day_vol)`)
+                        .eq('project_id', selectedProjectId)
+                        .order('report_date', { ascending: true });
+
+                    const allReports = (reportData || []).map((r: any) => ({
+                        id: r.id, date: r.report_date, findings: r.findings || '',
+                        items: (r.sigap_daily_report_items || []).map((it: any) => ({ dkhId: it.dkh_item_id, dayVol: it.day_vol }))
+                    }));
+
+                    const periodReports = allReports.filter(r => { const d = new Date(r.date); return d >= s && d <= e; });
+                    const prevReports = allReports.filter(r => new Date(r.date) < s);
+
+                    const periodVolMap: Record<string, number> = {};
+                    const prevVolMap: Record<string, number> = {};
+                    periodReports.forEach(r => r.items.forEach((it: any) => periodVolMap[it.dkhId] = (periodVolMap[it.dkhId] || 0) + it.dayVol));
+                    prevReports.forEach(r => r.items.forEach((it: any) => prevVolMap[it.dkhId] = (prevVolMap[it.dkhId] || 0) + it.dayVol));
+
+                    let periodVal = 0, prevVal = 0, cumVal = 0;
+                    const itemsStats = dkhItems.map(item => {
+                        const pVol = periodVolMap[item.id] || 0; const prVol = prevVolMap[item.id] || 0; const cVol = pVol + prVol;
+                        const pV = pVol * item.unitPrice; const prV = prVol * item.unitPrice; const cV = cVol * item.unitPrice;
+                        periodVal += pV; prevVal += prV; cumVal += cV;
+                        return { ...item, periodVol: pVol, prevVol: prVol, cumVol: cVol,
+                            periodPct: (pV / fullProject.contractValue) * 100,
+                            prevPct: (prV / fullProject.contractValue) * 100,
+                            cumPct: (cV / fullProject.contractValue) * 100 };
+                    });
+
+                    const tStart = new Date(fullProject.startDate);
+                    const tEnd = new Date(fullProject.endDate);
+                    const totalDays = Math.max(1, (tEnd.getTime() - tStart.getTime()) / 86400000);
+                    const plannedCum = Math.min(100, Math.max(0, (e.getTime() - tStart.getTime()) / 86400000 / totalDays * 100));
+                    const plannedPrev = Math.min(100, Math.max(0, (s.getTime() - tStart.getTime()) / 86400000 / totalDays * 100));
+
+                    setStats({
+                        itemsStats,
+                        periodProgress: (periodVal / fullProject.contractValue) * 100,
+                        prevProgress: (prevVal / fullProject.contractValue) * 100,
+                        overallProgress: (cumVal / fullProject.contractValue) * 100,
+                        plannedPeriod: Math.max(0, plannedCum - plannedPrev),
+                        plannedPrev, plannedCum,
+                        deviation: (cumVal / fullProject.contractValue) * 100 - plannedCum,
+                    });
+
+                    // S-Curve: weekly cumulative progress
+                    const totalWeeks = Math.ceil(totalDays / 7);
+                    const weeklyIncrement = 100 / totalWeeks;
+                    const sCurve = [];
+                    for (let i = 1; i <= totalWeeks; i++) {
+                        const weekEnd = new Date(tStart.getTime() + i * 7 * 86400000);
+                        const reportsUntilNow = allReports.filter(r => new Date(r.date) <= weekEnd);
+                        const volMap: Record<string, number> = {};
+                        reportsUntilNow.forEach(r => r.items.forEach((it: any) => volMap[it.dkhId] = (volMap[it.dkhId] || 0) + it.dayVol));
+                        let valReal = 0;
+                        dkhItems.forEach(item => { valReal += (volMap[item.id] || 0) * item.unitPrice; });
+                        sCurve.push({
+                            week: `Mg ${i}`,
+                            planned: Number(Math.min(100, i * weeklyIncrement).toFixed(2)),
+                            actual: weekEnd > new Date() ? null : Number(((valReal / fullProject.contractValue) * 100).toFixed(2)),
+                        });
+                    }
+                    setSCurveData(sCurve);
+
+                    setFindings(periodReports.filter(r => r.findings).map(r => `${r.date}: ${r.findings}`));
+                }
+            };
+            loadDetail();
         }
-    }, [selectedProjectId, startDate, endDate]);
+    }, [selectedProjectId, startDate, endDate, projects]);
 
     const handlePrint = () => {
         window.print();

@@ -18,9 +18,10 @@ import {
 } from "@/components/ui/dialog";
 import { Upload, Camera, MapPin, CloudSun, Users, AlertCircle, Printer, Calculator, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { storage, Project, DailyReport } from "@/lib/storage";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 // Interface for Backup Data Item
 interface BackupItem {
@@ -73,31 +74,71 @@ const Reports = () => {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [isLocating, setIsLocating] = useState(false);
 
+  // Load daftar proyek dari Supabase
   useEffect(() => {
-    if (user) {
-      // Show ALL projects to everyone for now (Simplified per user request)
-      // "Tidak perlu koneksi user rumit, cukup bisa lapor"
-      // In production we would filter, but for this stage we open it.
-      const list = storage.getProjects();
-      setProjects(list);
-    }
+    const loadProjects = async () => {
+      const { data, error } = await supabase
+        .from('sigap_pengawasan')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Gagal memuat proyek:', error);
+        // Fallback ke localStorage jika Supabase gagal
+        setProjects(storage.getProjects());
+      } else if (data) {
+        // Map kolom Supabase ke interface Project
+        const mapped: Project[] = data.map((p: any) => ({
+          id: p.id,
+          name: p.nama_proyek,
+          location: p.lokasi,
+          fiscalYear: p.tahun_anggaran || '',
+          contractNo: p.nomor_kontrak || '',
+          contractDate: p.tanggal_kontrak || '',
+          hpsValue: p.hps || 0,
+          contractValue: p.nilai_kontrak || 0,
+          contractorName: p.penyedia_jasa || '',
+          startDate: p.tanggal_mulai || '',
+          endDate: p.tanggal_selesai || '',
+          dkhItems: [],
+        }));
+        setProjects(mapped);
+      }
+    };
+    if (user) loadProjects();
   }, [user]);
 
   useEffect(() => {
-    if (selectedProjectId) {
-      const p = storage.getProjectById(selectedProjectId) || null;
-      setSelectedProject(p);
-      setProjectStats(storage.getProjectAnalytics(selectedProjectId));
+    if (selectedProjectId && projects.length > 0) {
+      // Load DKH items for selected project from Supabase
+      const loadProjectDetail = async () => {
+        const { data: dkhData, error: dkhError } = await supabase
+          .from('sigap_dkh_items')
+          .select('*')
+          .eq('project_id', selectedProjectId);
+        const dkhItems = (!dkhError && dkhData) ? dkhData.map((item: any) => ({
+          id: item.id,
+          projectId: item.project_id,
+          itemCode: item.item_code || '',
+          description: item.description || '',
+          unit: item.unit || '',
+          contractVol: item.contract_vol || 0,
+          unitPrice: item.unit_price || 0,
+          totalPrice: item.total_price || 0,
+          weight: item.weight || 0,
+        })) : [];
+        const base = projects.find(p => p.id === selectedProjectId) || null;
+        setSelectedProject(base ? { ...base, dkhItems } : null);
+        setProjectStats(null);
+      };
       setInputs({});
       setBackupDataMap({});
-      // Reset daily fields
-      setCoords("");
       setCoords("");
       setPhotoFiles([]);
       setPreviewUrls([]);
       setFindings("");
+      loadProjectDetail();
     }
-  }, [selectedProjectId]);
+  }, [selectedProjectId, projects]);
 
   const handleInputChange = (dkhId: string, val: string) => {
     setInputs(prev => ({ ...prev, [dkhId]: Number(val) }));
@@ -164,13 +205,8 @@ const Reports = () => {
 
   // CAMERA STATE
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const videoRef = useState<HTMLVideoElement | null>(null)[1]; // Using a simpler ref approach in effect
-  // Actually, let's use standard useRef inside the component first
-
-  // Re-declare properly with imports if I could, but here I'm replacing content inside the component body.
-  // I need to be careful about not breaking hooks.
-  // I will assume useRef is imported or I can use useState as ref callback?
-  // Let's use standard state for media stream to cleanup.
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
   const startCamera = async () => {
@@ -206,8 +242,8 @@ const Reports = () => {
   };
 
   const takePhoto = () => {
-    const video = document.querySelector('video');
-    const canvas = document.querySelector('canvas');
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
     if (video && canvas) {
       const context = canvas.getContext('2d');
       if (context) {
@@ -257,18 +293,16 @@ const Reports = () => {
   // Effect to attach stream to video element when modal opens
   useEffect(() => {
     if (isCameraOpen && mediaStream) {
-      // Little delay to ensure DOM is ready
       setTimeout(() => {
-        const video = document.querySelector('video');
-        if (video) {
-          video.srcObject = mediaStream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
         }
       }, 100);
     }
   }, [isCameraOpen, mediaStream]);
 
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProject) {
       toast.error("Pilih proyek terlebih dahulu");
@@ -280,7 +314,7 @@ const Reports = () => {
       .map(([dkhId, vol]) => ({
         dkhId,
         dayVol: vol,
-        backupData: backupDataMap[dkhId] || [] // Include backup data if exists
+        backupData: backupDataMap[dkhId] || []
       }));
 
     if (reportItems.length === 0) {
@@ -288,26 +322,73 @@ const Reports = () => {
       return;
     }
 
-    const report: DailyReport = {
-      id: Date.now().toString(),
-      projectId: selectedProjectId,
-      date: reportDate,
-      weather,
-      manpower,
-      isVerified: false,
-      items: reportItems,
-      coords: coords || "0,0",
-      photoUrls: previewUrls.length > 0 ? previewUrls : ["https://placehold.co/600x400?text=No+Image"],
-      photoUrl: previewUrls[0] || "https://placehold.co/600x400?text=No+Image", // Backward compat
-      findings: findings
-    };
+    try {
+      // 1. Simpan laporan harian ke Supabase
+      const { data: reportData, error: reportError } = await supabase
+        .from('sigap_daily_reports')
+        .insert({
+          project_id: selectedProjectId,
+          report_date: reportDate,
+          weather,
+          manpower,
+          findings: findings || null,
+          coords: coords || null,
+          photo_urls: previewUrls.length > 0 ? previewUrls : [],
+          is_verified: false,
+          created_by: user?.id || null,
+        })
+        .select()
+        .single();
 
-    storage.saveReport(report);
-    toast.success("Laporan Harian berhasil disimpan! Menunggu verifikasi.");
-    // Reset form
-    setInputs({});
-    setBackupDataMap({});
-    setFindings("");
+      if (reportError) throw reportError;
+
+      // 2. Simpan item-item laporan (volume per DKH item)
+      if (reportData && reportItems.length > 0) {
+        const itemsToInsert = reportItems.map(item => ({
+          report_id: reportData.id,
+          dkh_item_id: item.dkhId,
+          day_vol: item.dayVol,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('sigap_daily_report_items')
+          .insert(itemsToInsert);
+
+        if (itemsError) {
+          console.warn('Gagal simpan item laporan:', itemsError);
+        }
+      }
+
+      toast.success("Laporan Harian berhasil disimpan ke server! Menunggu verifikasi.");
+      // Reset form
+      setInputs({});
+      setBackupDataMap({});
+      setFindings("");
+      setCoords("");
+      setPhotoFiles([]);
+      setPreviewUrls([]);
+    } catch (err: any) {
+      console.error('Gagal menyimpan laporan:', err);
+      // Fallback ke localStorage jika Supabase gagal
+      const report: DailyReport = {
+        id: Date.now().toString(),
+        projectId: selectedProjectId,
+        date: reportDate,
+        weather,
+        manpower,
+        isVerified: false,
+        items: reportItems,
+        coords: coords || "0,0",
+        photoUrls: previewUrls.length > 0 ? previewUrls : [],
+        photoUrl: previewUrls[0] || "",
+        findings: findings
+      };
+      storage.saveReport(report);
+      toast.warning(`Tersimpan lokal (offline). Error: ${err.message}`);
+      setInputs({});
+      setBackupDataMap({});
+      setFindings("");
+    }
   };
 
   return (
@@ -740,7 +821,7 @@ const Reports = () => {
           <div className="relative flex-1 flex items-center justify-center overflow-hidden rounded-lg bg-slate-900 border border-slate-700">
             {/* VIDEO FEED */}
             <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover"></video>
-            <canvas ref={canvasRef} className="hidden"></canvas>
+            <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
 
             {/* OVERLAY GUIDE */}
             <div className="absolute inset-0 border-2 border-white/30 pointer-events-none flex items-center justify-center">

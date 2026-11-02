@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Printer, Calendar } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 
 const WeeklyReport = () => {
     const { user } = useAuth();
@@ -40,46 +41,134 @@ const WeeklyReport = () => {
     const [startDate, setStartDate] = useState<string>(monday.toISOString().split('T')[0]);
     const [endDate, setEndDate] = useState<string>(nextSunday.toISOString().split('T')[0]);
 
+    // Load proyek dari Supabase
     useEffect(() => {
-        setProjects(storage.getProjects());
+        const loadProjects = async () => {
+            const { data, error } = await supabase
+                .from('sigap_pengawasan')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error || !data) {
+                setProjects(storage.getProjects());
+            } else {
+                setProjects(data.map((p: any) => ({
+                    id: p.id,
+                    name: p.nama_proyek,
+                    location: p.lokasi,
+                    fiscalYear: p.tahun_anggaran || '',
+                    contractNo: p.nomor_kontrak || '',
+                    contractDate: p.tanggal_kontrak || '',
+                    hpsValue: p.hps || 0,
+                    contractValue: p.nilai_kontrak || 0,
+                    contractorName: p.penyedia_jasa || '',
+                    startDate: p.tanggal_mulai || '',
+                    endDate: p.tanggal_selesai || '',
+                    dkhItems: [],
+                })));
+            }
+        };
+        loadProjects();
     }, []);
 
     useEffect(() => {
         if (selectedProjectId && startDate && endDate) {
-            const p = storage.getProjectById(selectedProjectId) || null;
-            setProject(p);
-            if (p) {
-                // Use the new Date-Range Analytics
-                const s = new Date(startDate);
-                const e = new Date(endDate);
-                setStats(storage.getProjectAnalyticsByDate(p.id, s, e));
+            const loadDetail = async () => {
+                // Load DKH items
+                const { data: dkhData } = await supabase
+                    .from('sigap_dkh_items')
+                    .select('*')
+                    .eq('project_id', selectedProjectId);
+                const dkhItems = (dkhData || []).map((item: any) => ({
+                    id: item.id,
+                    projectId: item.project_id,
+                    itemCode: item.item_code || '',
+                    description: item.description || '',
+                    unit: item.unit || '',
+                    contractVol: item.contract_vol || 0,
+                    unitPrice: item.unit_price || 0,
+                    totalPrice: item.total_price || 0,
+                    weight: item.weight || 0,
+                }));
+                const base = projects.find(p => p.id === selectedProjectId);
+                const fullProject = base ? { ...base, dkhItems } : null;
+                setProject(fullProject);
 
-                // Get reports for this project within range
-                const reports = storage.getReports(p.id);
-                const periodReports = reports.filter(r => {
-                    const d = new Date(r.date);
-                    return d >= s && d <= e;
-                });
+                if (fullProject && fullProject.contractValue > 0) {
+                    // Load laporan dari Supabase dalam rentang tanggal
+                    const s = new Date(startDate);
+                    const e = new Date(endDate);
 
-                // Aggregate Findings
-                const allFindings = periodReports
-                    .filter(r => r.findings)
-                    .map(r => `${r.date}: ${r.findings}`);
-                setFindings(allFindings);
+                    const { data: reportData } = await supabase
+                        .from('sigap_daily_reports')
+                        .select(`id, report_date, findings, photo_urls, sigap_daily_report_items(dkh_item_id, day_vol)`)
+                        .eq('project_id', selectedProjectId);
 
-                // Aggregate Photos (Flatten all photoUrl and photoUrls)
-                const allPhotos: string[] = [];
-                periodReports.forEach(r => {
-                    if (r.photoUrls && r.photoUrls.length > 0) {
-                        allPhotos.push(...r.photoUrls);
-                    } else if (r.photoUrl && r.photoUrl !== "https://placehold.co/600x400?text=No+Image") {
-                        allPhotos.push(r.photoUrl);
-                    }
-                });
-                setPhotos(allPhotos);
-            }
+                    const allReports = (reportData || []).map((r: any) => ({
+                        id: r.id,
+                        date: r.report_date,
+                        findings: r.findings || '',
+                        photoUrls: r.photo_urls || [],
+                        items: (r.sigap_daily_report_items || []).map((it: any) => ({
+                            dkhId: it.dkh_item_id, dayVol: it.day_vol
+                        }))
+                    }));
+
+                    const periodReports = allReports.filter(r => {
+                        const d = new Date(r.date);
+                        return d >= s && d <= e;
+                    });
+                    const prevReports = allReports.filter(r => new Date(r.date) < s);
+
+                    // Kalkulasi analitik periode
+                    const periodVolMap: Record<string, number> = {};
+                    const prevVolMap: Record<string, number> = {};
+                    periodReports.forEach(r => r.items.forEach((it: any) => periodVolMap[it.dkhId] = (periodVolMap[it.dkhId] || 0) + it.dayVol));
+                    prevReports.forEach(r => r.items.forEach((it: any) => prevVolMap[it.dkhId] = (prevVolMap[it.dkhId] || 0) + it.dayVol));
+
+                    let periodVal = 0, prevVal = 0, cumVal = 0;
+                    const itemsStats = dkhItems.map(item => {
+                        const pVol = periodVolMap[item.id] || 0;
+                        const prVol = prevVolMap[item.id] || 0;
+                        const cVol = pVol + prVol;
+                        const pV = pVol * item.unitPrice;
+                        const prV = prVol * item.unitPrice;
+                        const cV = cVol * item.unitPrice;
+                        periodVal += pV; prevVal += prV; cumVal += cV;
+                        return {
+                            ...item,
+                            periodVol: pVol, prevVol: prVol, cumVol: cVol,
+                            periodPct: (pV / fullProject.contractValue) * 100,
+                            prevPct: (prV / fullProject.contractValue) * 100,
+                            cumPct: (cV / fullProject.contractValue) * 100,
+                        };
+                    });
+
+                    const tStart = new Date(fullProject.startDate);
+                    const tEnd = new Date(fullProject.endDate);
+                    const totalDays = Math.max(1, (tEnd.getTime() - tStart.getTime()) / 86400000);
+                    const plannedCum = Math.min(100, Math.max(0, (e.getTime() - tStart.getTime()) / 86400000 / totalDays * 100));
+                    const plannedPrev = Math.min(100, Math.max(0, (s.getTime() - tStart.getTime()) / 86400000 / totalDays * 100));
+
+                    setStats({
+                        itemsStats,
+                        periodProgress: (periodVal / fullProject.contractValue) * 100,
+                        prevProgress: (prevVal / fullProject.contractValue) * 100,
+                        overallProgress: (cumVal / fullProject.contractValue) * 100,
+                        plannedPeriod: Math.max(0, plannedCum - plannedPrev),
+                        plannedPrev,
+                        plannedCum,
+                        deviation: (cumVal / fullProject.contractValue) * 100 - plannedCum,
+                    });
+
+                    setFindings(periodReports.filter(r => r.findings).map(r => `${r.date}: ${r.findings}`));
+                    const allPhotos: string[] = [];
+                    periodReports.forEach(r => { if (r.photoUrls?.length > 0) allPhotos.push(...r.photoUrls); });
+                    setPhotos(allPhotos);
+                }
+            };
+            loadDetail();
         }
-    }, [selectedProjectId, startDate, endDate]);
+    }, [selectedProjectId, startDate, endDate, projects]);
 
     const handlePrint = () => {
         window.print();

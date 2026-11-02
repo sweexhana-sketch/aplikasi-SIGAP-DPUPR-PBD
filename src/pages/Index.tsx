@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import { 
-  BarChart2, Briefcase, Wallet, Clock, Activity, ArrowRight
+  BarChart2, Briefcase, Wallet, Clock, Activity, ArrowRight, CheckCircle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
